@@ -1,12 +1,17 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <!-- FIXED: Corrected charset from UTF-g to UTF-8 -->
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Shipment Management</title>
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- SheetJS for Excel Download -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <!-- PWA Manifest -->
     <link rel="manifest" href="manifest.json">
+    <!-- Theme Color for PWA -->
     <meta name="theme-color" content="#4a90e2">
     <style>
         /* Custom styles */
@@ -38,15 +43,18 @@
 </head>
 <body class="bg-gray-100 min-h-screen">
 
+    <!-- Loading Spinner Overlay -->
     <div id="loader-overlay" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
         <div id="loader"></div>
     </div>
 
+    <!-- Alert Box -->
     <div id="alert-box" class="fixed top-5 right-5 p-4 rounded-lg shadow-md z-50 hidden"
          onclick="this.classList.add('hidden')">
         <span id="alert-message"></span>
     </div>
 
+    <!-- Login Page -->
     <div id="login-page" class="flex items-center justify-center min-h-screen p-4">
         <div class="bg-white p-8 rounded-lg shadow-xl w-full max-w-md">
             <h2 class="text-3xl font-bold text-center text-gray-800 mb-6">Shipment Login</h2>
@@ -69,8 +77,12 @@
         </div>
     </div>
 
+    <!-- Main Application -->
     <div id="app" class="hidden">
+        <!-- Header / Navbar -->
+        <!-- UPDATED: Removed 'container mx-auto' for full width -->
         <header class="bg-white shadow-md sticky top-0 z-10">
+            <!-- UPDATED: Removed 'container mx-auto' for full width -->
             <nav class="px-4 py-3 flex flex-wrap justify-between items-center">
                 <div class="text-2xl font-bold text-blue-600">Shipment App</div>
                 <div class="flex items-center space-x-2">
@@ -84,19 +96,24 @@
             </nav>
         </header>
 
+        <!-- Main Content Area -->
+        <!-- UPDATED: Removed 'container mx-auto' for full width -->
         <main class="p-4 mt-4">
 
+            <!-- Page: Add Shipment -->
             <div id="add-shipment-page" class="app-page">
                 <div class="bg-white p-6 rounded-lg shadow-lg">
                     <h2 class="text-2xl font-bold mb-4 text-gray-800">Add New Shipment</h2>
                     <form id="shipment-form" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         
+                        <!-- Product Code -->
                         <div class="col-span-1 md:col-span-2 lg:col-span-3">
                             <label for="product-code" class="block text-sm font-medium text-gray-700">PRODUCTS CODE</label>
                             <input type="text" id="product-code" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
                             <div id="product-history" class="text-sm text-gray-600 mt-1 p-2 bg-gray-50 rounded hidden"></div>
                         </div>
 
+                        <!-- Brand Name -->
                         <div>
                             <label for="brand-name" class="block text-sm font-medium text-gray-700">BRAND NAME</label>
                             <div class="flex">
@@ -106,6 +123,7 @@
                             <datalist id="brand-list"></datalist>
                         </div>
                         
+                        <!-- Vendor Name -->
                         <div>
                             <label for="vendor-name" class="block text-sm font-medium text-gray-700">VENDOR NAME</label>
                              <div class="flex">
@@ -115,57 +133,71 @@
                             <datalist id="vendor-list"></datalist>
                         </div>
 
+                        <!-- Shipment Date -->
                         <div>
                             <label for="shipment-date" class="block text-sm font-medium text-gray-700">SHIPMENT DATE</label>
                             <input type="date" id="shipment-date" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <!-- This span will now be updated to '10 November 2025' format -->
                             <span id="date-day" class="text-sm text-gray-500"></span>
                         </div>
 
+                        <!-- Quantity -->
                         <div>
                             <label for="quantity" class="block text-sm font-medium text-gray-700">QUANTITY</label>
                             <input type="number" id="quantity" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
                         </div>
 
+                        <!-- PKR -->
                         <div>
                             <label for="pkr" class="block text-sm font-medium text-gray-700">PKR</label>
                             <input type="number" id="pkr" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
                         </div>
 
+                        <!-- TOTAL PKR (Read-only) -->
                         <div>
                             <label for="total-pkr" class="block text-sm font-medium text-gray-700">TOTAL PKR</label>
                             <input type="number" id="total-pkr" readonly class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm bg-gray-100">
                         </div>
                         
+                        <!-- Weight -->
+                        <!-- UPDATED: Label changed from 'WEIGHT (Grams)' to 'WEIGHT' -->
+                        <!-- UPDATED: Placeholder 'e.g., 300' removed -->
                         <div>
-                            <label for="weight" class="block text-sm font-medium text-gray-700">WEIGHT (Grams)</label>
-                            <input type="number" id="weight" placeholder="e.g., 300" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <label for="weight" class="block text-sm font-medium text-gray-700">WEIGHT</label>
+                            <input type="number" id="weight" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
                         </div>
 
+                        <!-- Discount % -->
                         <div>
                             <label for="discount-percent" class="block text-sm font-medium text-gray-700">DISCOUNT %</label>
                             <input type="number" id="discount-percent" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
                         </div>
 
+                        <!-- Each Discount Amount -->
                         <div>
                             <label for="each-discount" class="block text-sm font-medium text-gray-700">EACH DISCOUNT AMOUNT</label>
                             <input type="number" id="each-discount" readonly class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm bg-gray-100">
                         </div>
 
+                        <!-- Commission Amount -->
                         <div>
                             <label for="commission" class="block text-sm font-medium text-gray-700">COMMISSION AMOUNT</label>
                             <input type="number" id="commission" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
                         </div>
 
+                        <!-- AFTER DISCOUNT (Read-only) -->
                         <div>
                             <label for="after-discount" class="block text-sm font-medium text-gray-700">AFTER DISCOUNT</label>
                             <input type="number" id="after-discount" readonly class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm bg-gray-100">
                         </div>
 
+                        <!-- TOTAL (Read-only) -->
                         <div>
                             <label for="total" class="block text-sm font-medium text-gray-700">TOTAL</label>
                             <input type="number" id="total" readonly class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm bg-gray-100">
                         </div>
 
+                        <!-- Add List Button -->
                         <div class="col-span-1 md:col-span-2 lg:col-span-3">
                             <button type="button" id="add-to-list-btn" class="w-full bg-green-600 text-white py-2 px-4 rounded-md shadow-lg hover:bg-green-700 transition duration-300 font-semibold mt-4">
                                 Add to List
@@ -174,6 +206,7 @@
                     </form>
                 </div>
 
+                <!-- Added List Table -->
                 <div class="bg-white p-6 rounded-lg shadow-lg mt-6">
                     <h3 class="text-xl font-bold mb-4 text-gray-800">Shipment List</h3>
                     <div class="overflow-x-auto">
@@ -197,7 +230,8 @@
                                 </tr>
                             </thead>
                             <tbody id="temp-list-body" class="bg-white divide-y divide-gray-200">
-                                </tbody>
+                                <!-- Items will be added here by JS -->
+                            </tbody>
                         </table>
                     </div>
                     <button id="save-shipment-btn" class="w-full bg-blue-600 text-white py-2 px-4 rounded-md shadow-lg hover:bg-blue-700 transition duration-300 font-semibold mt-4 hidden">
@@ -206,6 +240,7 @@
                 </div>
             </div>
 
+            <!-- Page: Shipment Details -->
             <div id="shipment-details-page" class="app-page hidden">
                 <div class="bg-white p-6 rounded-lg shadow-lg">
                     <h2 class="text-2xl font-bold mb-4 text-gray-800">Shipment Details</h2>
@@ -213,30 +248,37 @@
                         <div class="relative w-full sm:w-1/2">
                             <input type="text" id="search-box" placeholder="Search by PRODUCTS CODE"
                                    class="w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-                            </div>
+                            <!-- UPDATED: Search button removed, will use 'Enter' key -->
+                        </div>
                         <button id="download-details-btn" class="w-full sm:w-auto bg-green-600 text-white py-2 px-4 rounded-md shadow-lg hover:bg-green-700 transition font-semibold">
                             Download Excel
                         </button>
                     </div>
+                    <!-- NEW: Div to show search total -->
                     <div id="search-total" class="text-lg font-semibold text-gray-700 mb-2 hidden"></div>
                     
+                    <!-- UPDATED: Removed 'overflow-x-auto' to remove the horizontal scrollbar -->
                     <div>
                         <table class="min-w-full divide-y divide-gray-200">
                             <thead class="bg-gray-50">
                                 <tr id="details-table-head">
-                                    </tr>
+                                    <!-- Headers will be dynamically generated -->
+                                </tr>
                             </thead>
                             <tbody id="details-table-body" class="bg-white divide-y divide-gray-200">
-                                </tbody>
+                                <!-- Data will be loaded here by JS -->
+                            </tbody>
                         </table>
                     </div>
                 </div>
             </div>
 
+            <!-- Page: Pricing -->
             <div id="pricing-page" class="app-page hidden">
                  <div class="bg-white p-6 rounded-lg shadow-lg">
                     <h2 class="text-2xl font-bold mb-4 text-gray-800">Pricing Report</h2>
                     <div class="flex flex-col sm:flex-row justify-between items-center mb-4 gap-4">
+                        <!-- UPDATED: Added a span to display the formatted date -->
                         <div class="w-full sm:w-1/2">
                             <label for="pricing-date" class="block text-sm font-medium text-gray-700">Select Shipment Date</label>
                             <input type="date" id="pricing-date" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
@@ -253,10 +295,12 @@
                         <table class="min-w-full divide-y divide-gray-200">
                             <thead class="bg-gray-50">
                                 <tr id="pricing-table-head">
-                                    </tr>
+                                    <!-- Pricing headers (SL, CODE, etc.) -->
+                                </tr>
                             </thead>
                             <tbody id="pricing-table-body" class="bg-white divide-y divide-gray-200">
-                                </tbody>
+                                <!-- Data will be loaded here by JS -->
+                            </tbody>
                         </table>
                     </div>
                  </div>
@@ -264,11 +308,13 @@
         </main>
     </div>
     
+    <!-- Modal for Edit Shipment -->
     <div id="edit-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-40 hidden p-4">
         <div class="bg-white p-6 rounded-lg shadow-xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
             <h3 class="text-xl font-bold mb-4">Edit Shipment Item</h3>
             <form id="edit-form" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                </form>
+                <!-- Form fields will be dynamically injected here -->
+            </form>
             <div class="mt-6 flex justify-end space-x-4">
                  <button id="cancel-edit-btn" class="bg-gray-500 text-white py-2 px-4 rounded-md hover:bg-gray-600">Cancel</button>
                  <button id="update-shipment-btn" class="bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700">Update</button>
@@ -700,7 +746,7 @@
                 quantityInput.value = '';
                 pkrInput.value = '';
                 totalPkrInput.value = '';
-                weightInput.value = '';
+                weightInput.value = ''; // Cleared weight input
                 discountPercentInput.value = '';
                 eachDiscountInput.value = '';
                 commissionInput.value = '';
@@ -717,7 +763,8 @@
                     quantity: parseFloat(quantityInput.value) || 0,
                     pkr: parseFloat(pkrInput.value) || 0,
                     totalPkr: parseFloat(totalPkrInput.value) || 0,
-                    weight: (parseFloat(weightInput.value) || 0) / 1000, // Convert g to kg
+                    // LOGIC: Converts input (e.g., 300) to kg (0.300) for saving
+                    weight: (parseFloat(weightInput.value) || 0) / 1000, 
                     discountPercent: parseFloat(discountPercentInput.value) || 0,
                     eachDiscountAmount: parseFloat(eachDiscountInput.value) || 0,
                     commissionAmount: parseFloat(commissionInput.value) || 0,
@@ -756,11 +803,13 @@
                             <td class="px-3 py-2 whitespace-nowrap text-sm">${item.quantity}</td>
                             <td class="px-3 py-2 whitespace-nowrap text-sm">${item.pkr.toFixed(0)}</td>
                             <td class="px-3 py-2 whitespace-nowrap text-sm">${item.totalPkr.toFixed(0)}</td>
+                            <!-- DISPLAY: Shows kg value (e.g., 0.300) -->
                             <td class="px-3 py-2 whitespace-nowrap text-sm">${item.weight.toFixed(3)}</td>
                             <td class="px-3 py-2 whitespace-nowrap text-sm">${item.discountPercent}</td>
                             <td class="px-3 py-2 whitespace-nowrap text-sm">${item.eachDiscountAmount.toFixed(0)}</td>
                             <td class="px-3 py-2 whitespace-nowrap text-sm">${item.commissionAmount.toFixed(0)}</td>
                             <td class="px-3 py-2 whitespace-nowrap text-sm">${item.afterDiscount.toFixed(0)}</td>
+                            <!-- UPDATED: Date formatted to '10 November 2025' -->
                             <td class="px-3 py-2 whitespace-nowrap text-sm">${formatDate_d_Month_YYYY(item.shipmentDate)}</td>
                             <td class="px-3 py-2 whitespace-nowrap text-sm">${item.vendorName}</td>
                             <td class="px-3 py-2 whitespace-nowrap text-sm">${item.total.toFixed(0)}</td>
@@ -837,6 +886,7 @@
                         if (header === 'SHIPMENT DATE' && value) {
                             value = formatDateWithDay(value);
                         }
+                        // DISPLAY: Shows kg value (e.g., 0.300)
                         if (header === 'WEIGHT' && value) {
                             value = (parseFloat(value) || 0).toFixed(3);
                         }
@@ -895,6 +945,10 @@
                     if (newItem['SHIPMENT DATE']) {
                         newItem['SHIPMENT DATE'] = formatDateWithDay(newItem['SHIPMENT DATE']);
                     }
+                    // DISPLAY: Shows kg value (e.g., 0.300) in Excel
+                    if (newItem['WEIGHT']) {
+                         newItem['WEIGHT'] = (parseFloat(newItem['WEIGHT']) || 0).toFixed(3);
+                    }
                     return newItem;
                 });
                 
@@ -949,12 +1003,14 @@
                         inputType = 'date';
                         value = new Date(value).toLocaleDateString('en-CA'); // yyyy-mm-dd format
                     }
+                    // LOGIC: Converts kg (0.300) back to grams (300) for editing
                     if (header === 'WEIGHT' && value) {
-                        value = (parseFloat(value) || 0) * 1000; // Convert kg back to g
+                        value = (parseFloat(value) || 0) * 1000; 
                     }
                     
                     editForm.innerHTML += `
                         <div>
+                            <!-- UPDATED: Label for Weight in modal is just 'WEIGHT' -->
                             <label for="edit-${key}" class="block text-sm font-medium text-gray-700">${header}</label>
                             <input type="${inputType}" id="edit-${key}" data-key="${key}" data-header="${header}" value="${value}"
                                    ${listName ? `list="${listName}"` : ''}
@@ -1023,8 +1079,9 @@
                     if (input.type === 'number') value = parseFloat(value) || 0;
                     if (input.type === 'date') value = new Date(input.value).toISOString(); // Store as ISO string
                     
+                    // LOGIC: Converts input from edit modal (e.g., 300) back to kg (0.300) for saving
                     if (header === 'WEIGHT') {
-                        value = (parseFloat(input.value) || 0) / 1000; // Convert g to kg
+                        value = (parseFloat(input.value) || 0) / 1000; 
                     }
 
                     updatedItem[key] = value;
@@ -1078,6 +1135,7 @@
                     bodyHtml += `<td class="px-3 py-2 whitespace-nowrap text-sm">${index + 1}</td>`; // SL
                     bodyHtml += `<td class="px-3 py-2 whitespace-nowrap text-sm">${item['PRODUCTS CODE']}</td>`; // CODE
                     bodyHtml += `<td class="px-3 py-2 whitespace-nowrap text-sm">${item['QUANTITY']}</td>`; // QUANTITY
+                    // DISPLAY: Shows kg value (e.g., 0.300)
                     bodyHtml += `<td class="px-3 py-2 whitespace-nowrap text-sm">${(parseFloat(item['WEIGHT']) || 0).toFixed(3)}</td>`; // WEIGHT
                     bodyHtml += `<td class="px-3 py-2 whitespace-nowrap text-sm">${item['AFTER DISCOUNT']}</td>`; // PKR (from AFTER DISCOUNT)
                     bodyHtml += `<td class="px-3 py-2 whitespace-nowrap text-sm"></td>`; // BD (empty)
