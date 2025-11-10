@@ -3,735 +3,1116 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Inventory Mismatch</title>
-    <!-- Load Tailwind CSS for styling -->
+    <title>Shipment Management</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#4a90e2">
     <style>
-        /* Custom styles for disabled elements */
-        :disabled {
-            background-color: #f3f4f6; /* gray-100 */
-            cursor: not-allowed;
-            opacity: 0.7;
+        /* Custom styles */
+        body { font-family: 'Inter', sans-serif; }
+        /* Hide elements until fully loaded */
+        .hidden { display: none; }
+        /* Custom alert box */
+        #alert-box {
+            transition: opacity 0.3s ease-in-out;
         }
-        /* Hide number input spinners (for Scan Qty) */
-        input[type=number]::-webkit-inner-spin-button,
-        input[type=number]::-webkit-outer-spin-button {
-            -webkit-appearance: none;
-            margin: 0;
+        /* Custom datalist styles */
+        input[list]::-webkit-calendar-picker-indicator {
+            display: none;
         }
-        input[type=number] {
-            -moz-appearance: textfield;
-        }
-        /* Simple loading spinner */
-        .spinner {
-            border: 4px solid rgba(0, 0, 0, 0.1);
-            width: 36px;
-            height: 36px;
+        /* Loading Spinner */
+        #loader {
+            border: 8px solid #f3f3f3;
+            border-top: 8px solid #3498db;
             border-radius: 50%;
-            border-left-color: #09f;
-            animation: spin 1s ease infinite;
+            width: 60px;
+            height: 60px;
+            animation: spin 1s linear infinite;
         }
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
-        /* Style for active tab */
-        .tab-active {
-            border-bottom-width: 4px;
-            --tw-border-opacity: 1;
-            border-color: rgb(37 99 235 / var(--tw-border-opacity));
-            --tw-text-opacity: 1;
-            color: rgb(37 99 235 / var(--tw-text-opacity));
-        }
     </style>
 </head>
-<body class="bg-gray-100 font-sans p-4 min-h-screen">
+<body class="bg-gray-100 min-h-screen">
 
-    <div class="max-w-7xl mx-auto bg-white shadow-lg rounded-lg overflow-hidden">
-        <!-- Header -->
-        <header class="bg-blue-600 text-white p-4">
-            <h1 class="text-2xl font-bold">Inventory Mismatch Scanner</h1>
+    <div id="loader-overlay" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div id="loader"></div>
+    </div>
+
+    <div id="alert-box" class="fixed top-5 right-5 p-4 rounded-lg shadow-md z-50 hidden"
+         onclick="this.classList.add('hidden')">
+        <span id="alert-message"></span>
+    </div>
+
+    <div id="login-page" class="flex items-center justify-center min-h-screen p-4">
+        <div class="bg-white p-8 rounded-lg shadow-xl w-full max-w-md">
+            <h2 class="text-3xl font-bold text-center text-gray-800 mb-6">Shipment Login</h2>
+            <form id="login-form">
+                <div class="mb-4">
+                    <label for="username" class="block text-sm font-medium text-gray-700 mb-1">User Name</label>
+                    <input type="text" id="username" name="username" required
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div class="mb-6">
+                    <label for="password" class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                    <input type="password" id="password" name="password" required
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <button type="submit"
+                        class="w-full bg-blue-600 text-white py-2 px-4 rounded-md shadow-lg hover:bg-blue-700 transition duration-300 font-semibold">
+                    Login
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <div id="app" class="hidden">
+        <header class="bg-white shadow-md sticky top-0 z-10">
+            <nav class="px-4 py-3 flex flex-wrap justify-between items-center">
+                <div class="text-2xl font-bold text-blue-600">Shipment App</div>
+                <div class="flex items-center space-x-2">
+                    <div id="menu-items" class="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
+                        <button data-page="add-shipment-page" class="nav-button bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600">Add Shipment</button>
+                        <button data-page="shipment-details-page" class="nav-button bg-gray-200 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-300">Shipment Details</button>
+                        <button data-page="pricing-page" class="nav-button bg-gray-200 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-300">Pricing</button>
+                    </div>
+                    <button id="logout-button" class="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600 ml-4">Logout</button>
+                </div>
+            </nav>
         </header>
 
-        <!-- Tab Navigation -->
-        <nav class="flex border-b">
-            <button id="tab-scan" class="flex-1 p-4 font-semibold tab-active" onclick="switchTab('scan')">Scan</button>
-            <button id="tab-history" class="flex-1 p-4 font-semibold text-gray-500" onclick="switchTab('history')">Mismatching History</button>
-            <button id="tab-no-entry" class="flex-1 p-4 font-semibold text-gray-500" onclick="switchTab('no-entry')">No Entry Product</button>
-        </nav>
+        <main class="p-4 mt-4">
 
-        <!-- Main Content -->
-        <main class="p-6 space-y-6">
+            <div id="add-shipment-page" class="app-page">
+                <div class="bg-white p-6 rounded-lg shadow-lg">
+                    <h2 class="text-2xl font-bold mb-4 text-gray-800">Add New Shipment</h2>
+                    <form id="shipment-form" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        
+                        <div class="col-span-1 md:col-span-2 lg:col-span-3">
+                            <label for="product-code" class="block text-sm font-medium text-gray-700">PRODUCTS CODE</label>
+                            <input type="text" id="product-code" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <div id="product-history" class="text-sm text-gray-600 mt-1 p-2 bg-gray-50 rounded hidden"></div>
+                        </div>
 
-            <!-- Loading Spinner (Initially hidden) -->
-            <div id="loading-overlay" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                <div class="spinner"></div>
-                <span class="text-white text-xl ml-4">Loading Data...</span>
-            </div>
-            
-            <!-- Scan Page -->
-            <div id="page-scan" class="space-y-6">
-                <!-- Shop Selection -->
-                <div class="flex flex-col sm:flex-row gap-4">
-                    <div class="flex-1">
-                        <label for="shop-select" class="block text-sm font-medium text-gray-700 mb-1">Select Shop</label>
-                        <select id="shop-select" class="w-full p-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500">
-                            <option value="">-- Select a Shop --</option>
-                            <option value="Dhanmondi">Dhanmondi</option>
-                            <option value="Uttara">Uttara</option>
-                            <option value="Banani">Banani</option>
-                        </select>
-                    </div>
-                    <div class="self-end">
-                        <button id="load-data-btn" class="w-full sm:w-auto bg-blue-600 text-white px-5 py-2 rounded-lg shadow-sm hover:bg-blue-700 transition-colors">Load Data</button>
-                    </div>
+                        <div>
+                            <label for="brand-name" class="block text-sm font-medium text-gray-700">BRAND NAME</label>
+                            <div class="flex">
+                                <input type="text" id="brand-name" list="brand-list" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-l-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <button type="button" id="add-brand-btn" class="mt-1 px-3 py-2 bg-green-500 text-white rounded-r-md hover:bg-green-600 hidden">+</button>
+                            </div>
+                            <datalist id="brand-list"></datalist>
+                        </div>
+                        
+                        <div>
+                            <label for="vendor-name" class="block text-sm font-medium text-gray-700">VENDOR NAME</label>
+                             <div class="flex">
+                                <input type="text" id="vendor-name" list="vendor-list" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-l-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <button type="button" id="add-vendor-btn" class="mt-1 px-3 py-2 bg-green-500 text-white rounded-r-md hover:bg-green-600 hidden">+</button>
+                            </div>
+                            <datalist id="vendor-list"></datalist>
+                        </div>
+
+                        <div>
+                            <label for="shipment-date" class="block text-sm font-medium text-gray-700">SHIPMENT DATE</label>
+                            <input type="date" id="shipment-date" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <span id="date-day" class="text-sm text-gray-500"></span>
+                        </div>
+
+                        <div>
+                            <label for="quantity" class="block text-sm font-medium text-gray-700">QUANTITY</label>
+                            <input type="number" id="quantity" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+
+                        <div>
+                            <label for="pkr" class="block text-sm font-medium text-gray-700">PKR</label>
+                            <input type="number" id="pkr" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+
+                        <div>
+                            <label for="total-pkr" class="block text-sm font-medium text-gray-700">TOTAL PKR</label>
+                            <input type="number" id="total-pkr" readonly class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm bg-gray-100">
+                        </div>
+                        
+                        <div>
+                            <label for="weight" class="block text-sm font-medium text-gray-700">WEIGHT (Grams)</label>
+                            <input type="number" id="weight" placeholder="e.g., 300" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+
+                        <div>
+                            <label for="discount-percent" class="block text-sm font-medium text-gray-700">DISCOUNT %</label>
+                            <input type="number" id="discount-percent" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+
+                        <div>
+                            <label for="each-discount" class="block text-sm font-medium text-gray-700">EACH DISCOUNT AMOUNT</label>
+                            <input type="number" id="each-discount" readonly class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm bg-gray-100">
+                        </div>
+
+                        <div>
+                            <label for="commission" class="block text-sm font-medium text-gray-700">COMMISSION AMOUNT</label>
+                            <input type="number" id="commission" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+
+                        <div>
+                            <label for="after-discount" class="block text-sm font-medium text-gray-700">AFTER DISCOUNT</label>
+                            <input type="number" id="after-discount" readonly class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm bg-gray-100">
+                        </div>
+
+                        <div>
+                            <label for="total" class="block text-sm font-medium text-gray-700">TOTAL</label>
+                            <input type="number" id="total" readonly class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm bg-gray-100">
+                        </div>
+
+                        <div class="col-span-1 md:col-span-2 lg:col-span-3">
+                            <button type="button" id="add-to-list-btn" class="w-full bg-green-600 text-white py-2 px-4 rounded-md shadow-lg hover:bg-green-700 transition duration-300 font-semibold mt-4">
+                                Add to List
+                            </button>
+                        </div>
+                    </form>
                 </div>
 
-                <!-- Scan Input -->
-                <form id="scan-form" class="space-y-2">
-                    <label for="scan-input" class="block text-sm font-medium text-gray-700">Scan Barcode or Code</label>
-                    <input type="text" id="scan-input" placeholder="Scan or type SKU here and press Enter..." class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500" disabled>
-                    <div id="scan-status" class="text-lg h-6"></div>
-                </form>
-
-                <!-- Scanned Items Table -->
-                <div class="mt-6">
-                    <h3 class="text-lg font-semibold text-gray-800 mb-2">Recently Scanned (Found Items)</h3>
-                    <div class="max-h-64 overflow-y-auto border rounded-lg">
+                <div class="bg-white p-6 rounded-lg shadow-lg mt-6">
+                    <h3 class="text-xl font-bold mb-4 text-gray-800">Shipment List</h3>
+                    <div class="overflow-x-auto">
                         <table class="min-w-full divide-y divide-gray-200">
                             <thead class="bg-gray-50">
                                 <tr>
-                                    <th class="p-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Item Name</th>
-                                    <th class="p-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">BAL QTY</th>
-                                    <th class="p-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Scanned Qty</th>
+                                    <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">PRODUCTS CODE</th>
+                                    <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">BRAND NAME</th>
+                                    <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">QUANTITY</th>
+                                    <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">PKR</th>
+                                    <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">TOTAL PKR</th>
+                                    <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">WEIGHT (kg)</th>
+                                    <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">DISCOUNT %</th>
+                                    <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">EACH DISCOUNT AMOUNT</th>
+                                    <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">COMMISSION AMOUNT</th>
+                                    <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">AFTER DISCOUNT</th>
+                                    <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">SHIPMENT DATE</th>
+                                    <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">VENDOR NAME</th>
+                                    <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">TOTAL</th>
+                                    <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
                                 </tr>
                             </thead>
-                            <tbody id="scan-log-body" class="bg-white divide-y divide-gray-200">
-                                <!-- Log rows will be added here -->
-                                <tr id="scan-log-placeholder">
-                                    <td colspan="3" class="p-3 text-center text-gray-500">No items scanned yet.</td>
-                                </tr>
-                            </tbody>
+                            <tbody id="temp-list-body" class="bg-white divide-y divide-gray-200">
+                                </tbody>
+                        </table>
+                    </div>
+                    <button id="save-shipment-btn" class="w-full bg-blue-600 text-white py-2 px-4 rounded-md shadow-lg hover:bg-blue-700 transition duration-300 font-semibold mt-4 hidden">
+                        Save Shipment
+                    </button>
+                </div>
+            </div>
+
+            <div id="shipment-details-page" class="app-page hidden">
+                <div class="bg-white p-6 rounded-lg shadow-lg">
+                    <h2 class="text-2xl font-bold mb-4 text-gray-800">Shipment Details</h2>
+                    <div class="flex flex-col sm:flex-row justify-between items-center mb-4 gap-4">
+                        <div class="relative w-full sm:w-1/2">
+                            <input type="text" id="search-box" placeholder="Search by PRODUCTS CODE"
+                                   class="w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            </div>
+                        <button id="download-details-btn" class="w-full sm:w-auto bg-green-600 text-white py-2 px-4 rounded-md shadow-lg hover:bg-green-700 transition font-semibold">
+                            Download Excel
+                        </button>
+                    </div>
+                    <div id="search-total" class="text-lg font-semibold text-gray-700 mb-2 hidden"></div>
+                    
+                    <div>
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr id="details-table-head">
+                                    </tr>
+                            </thead>
+                            <tbody id="details-table-body" class="bg-white divide-y divide-gray-200">
+                                </tbody>
                         </table>
                     </div>
                 </div>
             </div>
 
-            <!-- Mismatching History Page -->
-            <div id="page-history" class="hidden space-y-6">
-                <!-- ... (History page structure is unchanged) ... -->
-                <div class="flex justify-between items-center">
-                    <h2 class="text-2xl font-semibold text-gray-800">Mismatch Report</h2>
-                    <button id="download-csv-btn" class="bg-green-600 text-white px-5 py-2 rounded-lg shadow-sm hover:bg-green-700 transition-colors">Download CSV</button>
-                </div>
-                <div class="flex gap-4">
-                    <label class="flex items-center space-x-2">
-                        <input type="checkbox" id="filter-mismatch" class="rounded text-blue-600 focus:ring-blue-500" checked onchange="renderHistoryTable()">
-                        <span class="text-gray-700">Show Mismatches Only</span>
-                    </label>
-                    <label class="flex items-center space-x-2">
-                        <input type="checkbox" id="filter-scanned" class="rounded text-blue-600 focus:ring-blue-500" onchange="renderHistoryTable()">
-                        <span class="text-gray-700">Show Only Scanned Items</span>
-                    </label>
-                </div>
-                <div class="overflow-x-auto border rounded-lg shadow">
-                    <table id="mismatch-table" class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-50">
-                            <tr>
-                                <th class="p-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">CODE</th>
-                                <th class="p-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">BARCODE</th>
-                                <th class="p-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ITEM NAME</th>
-                                <th class="p-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">BAL QTY (Sheet)</th>
-                                <th class="p-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Scan Qty</th>
-                                <th class="p-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                            </tr>
-                        </thead>
-                        <tbody id="mismatch-table-body" class="bg-white divide-y divide-gray-200">
-                        </tbody>
-                    </table>
-                </div>
+            <div id="pricing-page" class="app-page hidden">
+                 <div class="bg-white p-6 rounded-lg shadow-lg">
+                    <h2 class="text-2xl font-bold mb-4 text-gray-800">Pricing Report</h2>
+                    <div class="flex flex-col sm:flex-row justify-between items-center mb-4 gap-4">
+                        <div class="w-full sm:w-1/2">
+                            <label for="pricing-date" class="block text-sm font-medium text-gray-700">Select Shipment Date</label>
+                            <input type="date" id="pricing-date" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <span id="pricing-date-display" class="text-sm text-gray-500 mt-1 block"></span>
+                        </div>
+                        <button id="load-pricing-btn" class="w-full sm:w-auto bg-blue-500 text-white py-2 px-4 rounded-md shadow-lg hover:bg-blue-600 transition font-semibold">
+                            Load Data
+                        </button>
+                        <button id="download-pricing-btn" class="w-full sm:w-auto bg-green-600 text-white py-2 px-4 rounded-md shadow-lg hover:bg-green-700 transition font-semibold disabled:opacity-50" disabled>
+                            Download Excel
+                        </button>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr id="pricing-table-head">
+                                    </tr>
+                            </thead>
+                            <tbody id="pricing-table-body" class="bg-white divide-y divide-gray-200">
+                                </tbody>
+                        </table>
+                    </div>
+                 </div>
             </div>
-            
-            <!-- No Entry Product Page (Updated: Text removed) -->
-            <div id="page-no-entry" class="hidden space-y-6">
-                <h2 class="text-2xl font-semibold text-gray-800">"No Entry" Products (Not in Master List)</h2>
-                <!-- The descriptive text has been removed as requested -->
-                <div class="overflow-x-auto border rounded-lg shadow">
-                    <table id="no-entry-table" class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-50">
-                            <tr>
-                                <th class="p-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">SKU (Scanned)</th>
-                                <th class="p-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Scanned Quantity</th>
-                            </tr>
-                        </thead>
-                        <tbody id="no-entry-table-body" class="bg-white divide-y divide-gray-200">
-                            <!-- Data will be populated here -->
-                            <tr id="no-entry-placeholder">
-                                <td colspan="2" class="p-3 text-center text-gray-500">No "No Entry" items scanned yet.</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
         </main>
     </div>
+    
+    <div id="edit-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-40 hidden p-4">
+        <div class="bg-white p-6 rounded-lg shadow-xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+            <h3 class="text-xl font-bold mb-4">Edit Shipment Item</h3>
+            <form id="edit-form" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                </form>
+            <div class="mt-6 flex justify-end space-x-4">
+                 <button id="cancel-edit-btn" class="bg-gray-500 text-white py-2 px-4 rounded-md hover:bg-gray-600">Cancel</button>
+                 <button id="update-shipment-btn" class="bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700">Update</button>
+            </div>
+        </div>
+    </div>
+
 
     <script>
-        // --- !! IMPORTANT !! ---
-        const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbySgUuEAQ1hT_G920GIUSVBOf80nZg7sckoG0XWZFB22fqWU1TiBtpUtdk89FcvThHF/exec';
-        
-        // --- Global State ---
-        let inventoryMap = new Map();
-        let barcodeToCodeMap = new Map();
-        let scanCounts = new Map();
-        let notFoundScanCounts = new Map(); // For "No Entry" items
-        let fullReport = [];
-
-        // --- DOM Elements ---
-        const scanInput = document.getElementById('scan-input');
-        const scanStatus = document.getElementById('scan-status');
-        const shopSelect = document.getElementById('shop-select');
-        const loadBtn = document.getElementById('load-data-btn');
-        const downloadBtn = document.getElementById('download-csv-btn');
-        const scanForm = document.getElementById('scan-form');
-        const loadingOverlay = document.getElementById('loading-overlay');
-        const scanLogBody = document.getElementById('scan-log-body');
-        const scanLogPlaceholder = document.getElementById('scan-log-placeholder');
-        const mismatchTableBody = document.getElementById('mismatch-table-body');
-        const filterMismatch = document.getElementById('filter-mismatch');
-        const filterScanned = document.getElementById('filter-scanned');
-        const noEntryTableBody = document.getElementById('no-entry-table-body');
-        const noEntryPlaceholder = document.getElementById('no-entry-placeholder');
-
-        // --- Event Listeners ---
         document.addEventListener('DOMContentLoaded', () => {
-            loadBtn.addEventListener('click', loadData);
-            scanForm.addEventListener('submit', handleScan);
-            downloadBtn.addEventListener('click', downloadCSV);
-        });
 
-        // --- Tab Switching ---
-        function switchTab(tabName) {
-            const pages = {
-                'scan': document.getElementById('page-scan'),
-                'history': document.getElementById('page-history'),
-                'no-entry': document.getElementById('page-no-entry')
-            };
-            const tabs = {
-                'scan': document.getElementById('tab-scan'),
-                'history': document.getElementById('tab-history'),
-                'no-entry': document.getElementById('tab-no-entry')
+            // === STATE ===
+            const GAS_URL = 'https://script.google.com/macros/s/AKfycbyiC20R6jAeDfaLYjiWYEKM1uZpPo4KmV2BQiiNORAtZIy8oNYQsnDr6Ci3_FqVdXZk/exec';
+            let state = {
+                currentUser: null,
+                brands: [],
+                vendors: [],
+                tempShipmentList: [],
+                allShipments: [], // Holds the full list for the details page
+                currentShipmentDetails: [], // Holds the currently *displayed* list (filtered or full)
+                pricingData: [],
+                editingRowId: null,
             };
 
-            // Hide all pages, remove active class from all tabs
-            for (const key in pages) {
-                pages[key].classList.add('hidden');
-                tabs[key].classList.remove('tab-active', 'text-gray-500');
-                tabs[key].classList.add('text-gray-500'); // Default inactive color
-            }
+            // === DOM ELEMENTS ===
+            const loginPage = document.getElementById('login-page');
+            const appPage = document.getElementById('app');
+            const loginForm = document.getElementById('login-form');
+            const loader = document.getElementById('loader-overlay');
+            const alertBox = document.getElementById('alert-box');
+            const alertMessage = document.getElementById('alert-message');
+            const navButtons = document.querySelectorAll('.nav-button');
+            const appPages = document.querySelectorAll('.app-page');
+            const logoutButton = document.getElementById('logout-button');
+            const menuItems = document.getElementById('menu-items');
 
-            // Show selected page, set active class on selected tab
-            pages[tabName].classList.remove('hidden');
-            tabs[tabName].classList.add('tab-active');
-            tabs[tabName].classList.remove('text-gray-500');
+            // Add Shipment Page
+            const shipmentForm = document.getElementById('shipment-form');
+            const productCodeInput = document.getElementById('product-code');
+            const productHistoryDiv = document.getElementById('product-history');
+            const brandNameInput = document.getElementById('brand-name');
+            const addBrandBtn = document.getElementById('add-brand-btn');
+            const brandListDatalist = document.getElementById('brand-list');
+            const vendorNameInput = document.getElementById('vendor-name');
+            const addVendorBtn = document.getElementById('add-vendor-btn');
+            const vendorListDatalist = document.getElementById('vendor-list');
+            const shipmentDateInput = document.getElementById('shipment-date');
+            const dateDaySpan = document.getElementById('date-day');
+            const quantityInput = document.getElementById('quantity');
+            const pkrInput = document.getElementById('pkr');
+            const totalPkrInput = document.getElementById('total-pkr');
+            const weightInput = document.getElementById('weight');
+            const discountPercentInput = document.getElementById('discount-percent');
+            const eachDiscountInput = document.getElementById('each-discount');
+            const commissionInput = document.getElementById('commission');
+            const afterDiscountInput = document.getElementById('after-discount');
+            const totalInput = document.getElementById('total');
+            const addToListBtn = document.getElementById('add-to-list-btn');
+            const tempListBody = document.getElementById('temp-list-body');
+            const saveShipmentBtn = document.getElementById('save-shipment-btn');
 
-            // Run tab-specific functions
-            if (tabName === 'history') {
-                generateAndRenderReport();
-            } else if (tabName === 'no-entry') {
-                renderNoEntryTable(); 
-            }
-        }
+            // Shipment Details Page
+            const detailsPage = document.getElementById('shipment-details-page');
+            const searchBox = document.getElementById('search-box');
+            // const searchBtn = document.getElementById('search-btn'); // No longer needed
+            const downloadDetailsBtn = document.getElementById('download-details-btn');
+            const detailsTableHead = document.getElementById('details-table-head');
+            const detailsTableBody = document.getElementById('details-table-body');
+            const searchTotalDiv = document.getElementById('search-total');
+            const editModal = document.getElementById('edit-modal');
+            const editForm = document.getElementById('edit-form');
+            const cancelEditBtn = document.getElementById('cancel-edit-btn');
+            const updateShipmentBtn = document.getElementById('update-shipment-btn');
 
-        // --- Loading Spinner ---
-        function showLoading(isLoading) {
-            if (isLoading) {
-                loadingOverlay.classList.remove('hidden');
-                loadBtn.disabled = true;
-            } else {
-                loadingOverlay.classList.add('hidden');
-                loadBtn.disabled = false;
-            }
-        }
-
-        /**
-         * Fetches BOTH master data and scan data from the Google Sheet backend.
-         */
-        async function loadData() {
-            const sheetName = shopSelect.value;
-            if (!sheetName) {
-                // Use custom message box instead of alert()
-                showTemporaryMessage('Please select a shop first.', 'red');
-                return;
-            }
+            // Pricing Page
+            const pricingPage = document.getElementById('pricing-page');
+            const pricingDateInput = document.getElementById('pricing-date');
+            const loadPricingBtn = document.getElementById('load-pricing-btn');
+            const downloadPricingBtn = document.getElementById('download-pricing-btn');
+            const pricingTableHead = document.getElementById('pricing-table-head');
+            const pricingTableBody = document.getElementById('pricing-table-body');
+            // UPDATED: Added new span element
+            const pricingDateDisplay = document.getElementById('pricing-date-display');
             
-            showLoading(true);
-            scanInput.disabled = true;
+            const shipmentHeaders = ['PRODUCTS CODE', 'BRAND NAME', 'QUANTITY', 'PKR', 'TOTAL PKR', 'WEIGHT', 'DISCOUNT %', 'EACH DISCOUNT AMOUNT', 'COMMISSION AMOUNT', 'AFTER DISCOUNT', 'SHIPMENT DATE', 'VENDOR NAME', 'TOTAL'];
+            const pricingHeaders = ['SL', 'CODE', 'QUANTITY', 'WEIGHT', 'PKR', 'BD', 'BUY', 'SELLING', 'PREVIOSE SELLING', 'ORGINAL RATE', 'BRAND NAME'];
 
-            // Clear all previous data
-            inventoryMap.clear();
-            barcodeToCodeMap.clear();
-            scanCounts.clear(); 
-            notFoundScanCounts.clear();
-            scanLogBody.innerHTML = ''; 
-            scanLogBody.appendChild(scanLogPlaceholder); 
-            mismatchTableBody.innerHTML = ''; 
-            noEntryTableBody.innerHTML = ''; 
-            noEntryTableBody.appendChild(noEntryPlaceholder);
-            scanStatus.textContent = 'Loading master data...';
-            scanStatus.classList.remove('text-red-600', 'text-yellow-500', 'text-green-600');
+            // === HELPER FUNCTIONS ===
 
-            try {
-                // Step 1: Fetch Master Inventory Data
-                const masterUrl = `${WEB_APP_URL}?action=getMasterData&sheetName=${sheetName}`;
-                const masterResponse = await fetch(masterUrl);
-                const masterData = await masterResponse.json();
-                if (masterData.error) throw new Error(masterData.error);
-                
-                scanStatus.textContent = 'Loading scan data...';
-
-                // Step 2: Fetch Existing Scan Data (Both Found and Not Found)
-                const scanSheetName = `${sheetName} Scan`;
-                const scanUrl = `${WEB_APP_URL}?action=getScanData&sheetName=${scanSheetName}`;
-                const scanResponse = await fetch(scanUrl);
-                const scanData = await scanResponse.json(); 
-                if (scanData.error) throw new Error(scanData.error);
-                
-                // Step 3: Process all data
-                onDataLoaded(masterData, scanData);
-
-            } catch (error) {
-                onDataError(error);
-            }
-        }
-
-        /**
-         * Callback function for successful data loading.
-         */
-        function onDataLoaded(masterData, scanData) {
-            // scanData = { found: [...], notFound: [...] }
-            const foundData = scanData.found;
-            const notFoundData = scanData.notFound;
-
-            // 1. Process Master Data first
-            masterData.forEach(row => {
-                const item = {
-                    code: row[0],
-                    barcode: row[1],
-                    itemName: String(row[2] || ''), 
-                    balQty: parseInt(row[3]) || 0 
-                };
-                if (item.code) {
-                    inventoryMap.set(item.code, item);
-                    barcodeToCodeMap.set(String(item.code).toUpperCase(), item.code);
-                    if (item.barcode) {
-                        barcodeToCodeMap.set(String(item.barcode).toUpperCase(), item.code);
-                    }
-                }
-            });
-
-            // 2. Process Found Scan Data (A:C)
-            foundData.forEach(row => {
-                const scannedSku = String(row[0]).toUpperCase();
-                const scannedQty = parseInt(row[2]) || 0;
-                
-                const itemCode = barcodeToCodeMap.get(scannedSku);
-                
-                if (itemCode) {
-                    const existingQty = scanCounts.get(itemCode) || 0;
-                    scanCounts.set(itemCode, existingQty + scannedQty);
-                } else {
-                    console.warn(`Scanned SKU ${scannedSku} from sheet (Col A) not found in master data.`);
-                }
-            });
-
-            // 3. Process Not Found Scan Data (E:F)
-            notFoundData.forEach(row => {
-                const notFoundSku = String(row[0]).toUpperCase();
-                const notFoundQty = parseInt(row[1]) || 0;
-                if(notFoundSku) {
-                    notFoundScanCounts.set(notFoundSku, notFoundQty);
-                }
-            });
-            
-            // 4. Rebuild the "Recently Scanned" log
-            rebuildScanLog();
-
-            // 5. Finish setup
-            showLoading(false);
-            scanInput.disabled = false;
-            scanStatus.textContent = `Ready to scan ${inventoryMap.size} items from ${shopSelect.value}.`;
-            scanStatus.classList.remove('text-red-600', 'text-yellow-500');
-            scanStatus.classList.add('text-green-600');
-            scanInput.focus();
-        }
-
-        /**
-         * Callback function for data loading errors.
-         */
-        function onDataError(error) {
-            showLoading(false);
-            scanInput.disabled = true;
-            scanStatus.textContent = `Error loading data: ${error.message}`;
-            scanStatus.classList.add('text-red-600');
-            scanStatus.classList.remove('text-green-600', 'text-yellow-500');
-        }
-
-        /**
-         * Handles the scan input form submission (Enter key).
-         */
-        async function handleScan(event) {
-            event.preventDefault(); 
-            const sku = scanInput.value.trim().toUpperCase();
-            if (!sku) return;
-
-            const itemCode = barcodeToCodeMap.get(sku);
-            scanInput.value = '';
-            scanInput.focus();
-
-            if (itemCode) {
-                // --- Item FOUND in Master List ---
-                const item = inventoryMap.get(itemCode);
-                
-                // 1. Optimistic UI Update (Found List)
-                const newCount = (scanCounts.get(itemCode) || 0) + 1;
-                scanCounts.set(itemCode, newCount);
-                updateScanLog(item, newCount);
-                
-                scanStatus.textContent = `Scanned (${newCount}): ${item.itemName}`;
-                scanStatus.classList.remove('text-red-600', 'text-yellow-500');
-                scanStatus.classList.add('text-green-600');
-                playBeep(false);
-
-                // 2. Asynchronously save to Google Sheet (Found Logic)
-                try {
-                    const response = await fetch(WEB_APP_URL, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                        body: JSON.stringify({
-                            action: 'saveFoundScan', 
-                            sheetName: `${shopSelect.value} Scan`, 
-                            sku: sku, 
-                            itemName: item.itemName
-                        })
-                    });
-                    
-                    const saveResult = await response.json();
-                    
-                    if (saveResult.status === 'success') {
-                        console.log('Save successful (Found):', saveResult);
-                        // Re-sync count from server
-                        scanCounts.set(itemCode, saveResult.newQty);
-                        updateScanLog(item, saveResult.newQty);
-                    } else {
-                        throw new Error(saveResult.error || 'Unknown save error');
-                    }
-                } catch (error) {
-                    console.error('Save error (Found):', error);
-                    scanStatus.textContent = `Scanned (${newCount})... Save failed!`;
-                    scanStatus.classList.remove('text-green-600');
-                    scanStatus.classList.add('text-yellow-500');
-                }
-
-            } else {
-                // --- Item NOT FOUND in Master List ---
-                
-                // 1. Optimistic UI Update (Not Found List)
-                const newCount = (notFoundScanCounts.get(sku) || 0) + 1;
-                notFoundScanCounts.set(sku, newCount);
-
-                scanStatus.textContent = `Item NOT FOUND. Logged to "No Entry": ${sku}`;
-                scanStatus.classList.remove('text-green-600', 'text-yellow-500');
-                scanStatus.classList.add('text-red-600');
-                playBeep(true); 
-
-                // 2. Asynchronously save to Google Sheet (Not Found Logic)
-                try {
-                    const response = await fetch(WEB_APP_URL, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                        body: JSON.stringify({
-                            action: 'saveNotFoundScan', 
-                            sheetName: `${shopSelect.value} Scan`, 
-                            sku: sku 
-                        })
-                    });
-                    
-                    const saveResult = await response.json();
-                    
-                    if (saveResult.status === 'success') {
-                        console.log('Save successful (Not Found):', saveResult);
-                        // Re-sync count from server
-                        notFoundScanCounts.set(saveResult.sku.toUpperCase(), saveResult.newQty);
-                    } else {
-                        throw new Error(saveResult.error || 'Unknown save error');
-                    }
-                } catch (error) {
-                    console.error('Save error (Not Found):', error);
-                    scanStatus.textContent = `Logged "No Entry"... Save failed!`;
-                    scanStatus.classList.remove('text-red-600');
-                    scanStatus.classList.add('text-yellow-500');
-                }
-            }
-        }
-        
-        /**
-         * Updates the "Recently Scanned" log table.
-         */
-        function updateScanLog(item, newCount) {
-            const placeholder = scanLogBody.querySelector('#scan-log-placeholder');
-            if (placeholder) {
-                placeholder.remove();
-            }
-            let row = document.getElementById(`log-${item.code}`);
-            if (row) {
-                row.cells[1].textContent = item.balQty;
-                row.cells[2].textContent = newCount;
-                scanLogBody.prepend(row);
-            } else {
-                row = scanLogBody.insertRow(0); 
-                row.id = `log-${item.code}`;
-                row.innerHTML = `
-                    <td class="p-3 whitespace-nowrap">${item.itemName}</td>
-                    <td class="p-3">${item.balQty}</td>
-                    <td class="p-3">${newCount}</td>
-                `;
-            }
-        }
-
-        /**
-         * Generates the full report data.
-         */
-        function generateReport() {
-            fullReport = [];
-            inventoryMap.forEach((item, code) => {
-                const expected = item.balQty;
-                const scanned = scanCounts.get(code) || 0;
-                const diff = scanned - expected;
-                
-                let status = '';
-                let statusColor = 'text-gray-700';
-
-                if (diff === 0) {
-                    status = (scanned > 0) ? 'OK' : 'Not Scanned';
-                    if (scanned > 0) statusColor = 'text-green-600 font-semibold';
-                } else if (diff > 0) {
-                    status = `+${diff}`;
-                    statusColor = 'text-green-600 font-semibold';
-                } else { // diff < 0
-                    status = `${diff}`;
-                    statusColor = 'text-red-600 font-semibold';
-                }
-                
-                fullReport.push({
-                    ...item, 
-                    scanned,
-                    status,
-                    statusColor,
-                    isMismatch: (diff !== 0),
-                    wasScanned: (scanned > 0)
-                });
-            });
-
-            fullReport.sort((a, b) => {
-                // Sort by Mismatch first, then by Item Name
-                if (a.isMismatch && !b.isMismatch) return -1;
-                if (!a.isMismatch && b.isMismatch) return 1;
-                return a.itemName.localeCompare(b.itemName);
-            });
-        }
-
-        /**
-         * Renders the history table.
-         */
-        function renderHistoryTable() {
-            mismatchTableBody.innerHTML = ''; 
-            
-            const showMismatchesOnly = filterMismatch.checked;
-            const showScannedOnly = filterScanned.checked;
-
-            let filteredReport = fullReport;
-
-            if (showMismatchesOnly) {
-                filteredReport = filteredReport.filter(item => item.isMismatch);
-            }
-            if (showScannedOnly) {
-                filteredReport = filteredReport.filter(item => item.wasScanned);
+            // Show/Hide Loader
+            function showLoader(show = true) {
+                loader.classList.toggle('hidden', !show);
             }
 
-            if (filteredReport.length === 0) {
-                mismatchTableBody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-gray-500">No items match the current filters.</td></tr>`;
-                return;
-            }
-
-            filteredReport.forEach(item => {
-                const row = mismatchTableBody.insertRow();
-                row.innerHTML = `
-                    <td class="p-3 whitespace-nowrap">${item.code}</td>
-                    <td class="p-3 whitespace-nowrap">${item.barcode}</td>
-                    <td class="p-3 whitespace-nowrap">${item.itemName}</td>
-                    <td class="p-3">${item.balQty}</td>
-                    <td class="p-3">${item.scanned}</td>
-                    <td class="p-3 ${item.statusColor}">${item.status}</td>
-                `;
-            });
-        }
-        
-        /**
-         * Calls generation and rendering functions.
-         */
-        function generateAndRenderReport() {
-            generateReport();
-            renderHistoryTable();
-        }
-
-        /**
-         * Downloads the current mismatch report as a CSV file.
-         */
-        function downloadCSV() {
-            if (fullReport.length === 0) {
-                generateReport(); 
-            }
-            
-            let csvContent = "data:text/csv;charset=utf-8,";
-            csvContent += "CODE,BARCODE,ITEM NAME,BAL QTY (Sheet),Scan Qty,STATUS\n";
-
-            fullReport.forEach(item => {
-                // Handle commas/quotes in item name
-                const itemNameEscaped = `"${item.itemName.replace(/"/g, '""')}"`; 
-                const row = [
-                    item.code,
-                    item.barcode,
-                    itemNameEscaped,
-                    item.balQty,
-                    item.scanned,
-                    item.status
-                ].join(",");
-                csvContent += row + "\n";
-            });
-
-            const encodedUri = encodeURI(csvContent);
-            const link = document.createElement("a");
-            link.setAttribute("href", encodedUri);
-            link.setAttribute("download", `inventory_mismatch_${shopSelect.value}_${new Date().toISOString().split('T')[0]}.csv`);
-            document.body.appendChild(link); 
-            link.click();
-            document.body.removeChild(link);
-        }
-        
-        /**
-         * Repopulates the "Recently Scanned" log after loading data.
-         */
-        function rebuildScanLog() {
-            scanLogBody.innerHTML = ''; // Clear log
-
-            if (scanCounts.size === 0) {
-                scanLogBody.appendChild(scanLogPlaceholder);
-                return;
-            }
-            
-            const itemsToLog = [];
-            scanCounts.forEach((count, code) => {
-                const item = inventoryMap.get(code);
-                if (item) {
-                    itemsToLog.push({ item, count });
-                }
-            });
-
-            // Sort by most recently scanned (by code, as actual scan time is not tracked)
-            itemsToLog.sort((a, b) => b.item.code.localeCompare(a.item.code));
-
-            itemsToLog.forEach(logItem => {
-                const { item, count } = logItem;
-                const row = scanLogBody.insertRow(); 
-                row.id = `log-${item.code}`;
-                row.innerHTML = `
-                    <td class="p-3 whitespace-nowrap">${item.itemName}</td>
-                    <td class="p-3">${item.balQty}</td>
-                    <td class="p-3">${count}</td>
-                `;
-            });
-        }
-
-        /**
-         * Renders the "No Entry" products table.
-         */
-        function renderNoEntryTable() {
-            noEntryTableBody.innerHTML = ''; // Clear table
-            
-            if (notFoundScanCounts.size === 0) {
-                noEntryTableBody.appendChild(noEntryPlaceholder);
-                return;
-            }
-
-            // Sort by SKU for consistency
-            const sortedItems = Array.from(notFoundScanCounts.entries()).sort((a, b) => a[0].localeCompare(b[0]));
-
-            sortedItems.forEach(([sku, qty]) => {
-                const row = noEntryTableBody.insertRow();
-                row.innerHTML = `
-                    <td class="p-3 whitespace-nowrap">${sku}</td>
-                    <td class="p-3">${qty}</td>
-                `;
-            });
-        }
-
-
-        /**
-         * Plays a simple beep sound for success or error.
-         */
-        function playBeep(isError = false) {
-            try {
-                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                const oscillator = audioContext.createOscillator();
-                const gain = audioContext.createGain();
-
-                oscillator.connect(gain);
-                gain.connect(audioContext.destination);
-
+            // Show Alert
+            function showAlert(message, isError = false) {
+                alertMessage.textContent = message;
+                alertBox.classList.remove('hidden', 'bg-green-500', 'bg-red-500', 'text-white');
                 if (isError) {
-                    oscillator.type = 'square';
-                    oscillator.frequency.setValueAtTime(110, audioContext.currentTime);
-                    gain.gain.setValueAtTime(0.3, audioContext.currentTime);
+                    alertBox.classList.add('bg-red-500', 'text-white');
                 } else {
-                    oscillator.type = 'sine';
-                    oscillator.frequency.setValueAtTime(880, audioContext.currentTime); 
-                    gain.gain.setValueAtTime(0.2, audioContext.currentTime);
+                    alertBox.classList.add('bg-green-500', 'text-white');
+                }
+                setTimeout(() => {
+                    alertBox.classList.add('hidden');
+                }, 3000);
+            }
+
+            // API Call Function
+            async function apiCall(action, payload = {}) {
+                showLoader();
+                try {
+                    const response = await fetch(GAS_URL, {
+                        method: 'POST',
+                        redirect: 'follow',
+                        headers: { 'Content-Type': 'text/plain;charset=utf-8', }, // Use utf-8
+                        body: JSON.stringify({
+                            action,
+                            auth: state.currentUser, // Send auth details with every request
+                            ...payload
+                        })
+                    });
+                    const result = await response.json();
+                    showLoader(false);
+                    if (result.status === 'error') {
+                        showAlert(result.message, true);
+                        return null;
+                    }
+                    return result;
+                } catch (error) {
+                    showLoader(false);
+                    showAlert('Network or API error: ' + error.message, true);
+                    return null;
+                }
+            }
+
+            // Page Navigation
+            function showPage(pageId) {
+                appPages.forEach(page => page.classList.add('hidden'));
+                document.getElementById(pageId).classList.remove('hidden');
+
+                navButtons.forEach(button => {
+                    if (button.dataset.page === pageId) {
+                        button.classList.remove('bg-gray-200', 'text-gray-700');
+                        button.classList.add('bg-blue-500', 'text-white');
+                    } else {
+                        button.classList.add('bg-gray-200', 'text-gray-700');
+                        button.classList.remove('bg-blue-500', 'text-white');
+                    }
+                });
+                
+                // Load data for page if needed
+                if (pageId === 'shipment-details-page' && state.allShipments.length === 0) {
+                    loadShipmentDetails();
+                }
+            }
+            
+            // Apply User Permissions
+            function applyPermissions() {
+                // Check for admin, case-insensitive
+                const isAdmin = state.currentUser && state.currentUser.access && state.currentUser.access.toLowerCase() === 'admin';
+                
+                if (!isAdmin) {
+                    // Hide admin-only menu items
+                    menuItems.querySelector('[data-page="add-shipment-page"]').classList.add('hidden');
+                    menuItems.querySelector('[data-page="pricing-page"]').classList.add('hidden');
+                    
+                    // Hide admin-only buttons in UI
+                    if(addBrandBtn) addBrandBtn.classList.add('hidden');
+                    if(addVendorBtn) addVendorBtn.classList.add('hidden');
+                    if(addToListBtn) addToListBtn.classList.add('hidden');
+                    if(saveShipmentBtn) saveShipmentBtn.classList.add('hidden');
+                    if(downloadDetailsBtn) downloadDetailsBtn.classList.add('hidden');
+                    
+                    // Show Shipment Details by default for non-admin
+                    showPage('shipment-details-page');
+                } else {
+                    // Show all elements for admin
+                    menuItems.querySelector('[data-page="add-shipment-page"]').classList.remove('hidden');
+                    menuItems.querySelector('[data-page="pricing-page"]').classList.remove('hidden');
+                    showPage('add-shipment-page');
+                }
+            }
+            
+            // *** UPDATED: Helper format changed to 'Monday, 10 November 2025' ***
+            function formatDateWithDay(dateString) {
+                if (!dateString) return '';
+                const date = new Date(dateString);
+                // Adjust for timezone offset to prevent off-by-one day errors
+                const localDate = new Date(date.getTime() + date.getTimezoneOffset() * 60000);
+                return localDate.toLocaleDateString('en-GB', { 
+                    weekday: 'long', 
+                    day: 'numeric', 
+                    month: 'long', 
+                    year: 'numeric' 
+                });
+            }
+
+            // *** NEW: Helper for '10 November 2025' format ***
+            function formatDate_d_Month_YYYY(dateString) {
+                if (!dateString) return '';
+                const date = new Date(dateString);
+                // Adjust for timezone offset
+                const localDate = new Date(date.getTime() + date.getTimezoneOffset() * 60000);
+                return localDate.toLocaleDateString('en-GB', { 
+                    day: 'numeric', 
+                    month: 'long', 
+                    year: 'numeric' 
+                });
+            }
+
+
+            // === LOGIN / LOGOUT ===
+            loginForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const userName = document.getElementById('username').value;
+                const password = document.getElementById('password').value;
+                
+                const result = await apiCall('login', { userName, password });
+                
+                if (result && result.status === 'success') {
+                    state.currentUser = { userName: result.userName, access: result.access };
+                    localStorage.setItem('currentUser', JSON.stringify(state.currentUser)); 
+                    
+                    loginPage.classList.add('hidden');
+                    appPage.classList.remove('hidden');
+                    showAlert('Login successful!');
+                    loadInitialData();
+                    applyPermissions();
+                }
+            });
+
+            logoutButton.addEventListener('click', () => {
+                state.currentUser = null;
+                localStorage.removeItem('currentUser'); 
+                
+                state.tempShipmentList = [];
+                state.allShipments = [];
+                state.currentShipmentDetails = [];
+                state.brands = [];
+                state.vendors = [];
+                appPage.classList.add('hidden');
+                loginPage.classList.remove('hidden');
+                // Clear datalists
+                brandListDatalist.innerHTML = '';
+                vendorListDatalist.innerHTML = '';
+                // Reset tables
+                detailsTableBody.innerHTML = '';
+                detailsTableHead.innerHTML = '';
+                pricingTableBody.innerHTML = '';
+                pricingTableHead.innerHTML = '';
+            });
+            
+            // === INITIAL DATA LOAD ===
+            async function loadInitialData() {
+                const result = await apiCall('getInitialData');
+                if (result) {
+                    state.brands = result.brands;
+                    state.vendors = result.vendors;
+                    populateDatalists();
+                }
+            }
+            
+            function populateDatalists() {
+                brandListDatalist.innerHTML = '';
+                state.brands.forEach(brand => {
+                    const option = document.createElement('option');
+                    option.value = brand;
+                    brandListDatalist.appendChild(option);
+                });
+                
+                vendorListDatalist.innerHTML = '';
+                state.vendors.forEach(vendor => {
+                    const option = document.createElement('option');
+                    option.value = vendor;
+                    vendorListDatalist.appendChild(option);
+                });
+            }
+
+            // === PWA Registration ===
+            if ('serviceWorker' in navigator) {
+                window.addEventListener('load', () => {
+                    navigator.serviceWorker.register('sw.js')
+                        .then(registration => console.log('ServiceWorker registration successful'))
+                        .catch(err => console.log('ServiceWorker registration failed: ', err));
+                });
+            }
+
+            // Check for saved user on page load
+            (function checkSavedLogin() {
+                const savedUser = localStorage.getItem('currentUser');
+                if (savedUser) {
+                    try {
+                        state.currentUser = JSON.parse(savedUser);
+                        if (state.currentUser && state.currentUser.userName) {
+                            loginPage.classList.add('hidden');
+                            appPage.classList.remove('hidden');
+                            loadInitialData();
+                            applyPermissions();
+                            showAlert(`Welcome back, ${state.currentUser.userName}!`);
+                        }
+                    } catch (e) {
+                        console.error('Failed to parse saved user', e);
+                        localStorage.removeItem('currentUser');
+                    }
+                }
+            })();
+            
+            // === PAGE NAVIGATION ===
+            navButtons.forEach(button => {
+                button.addEventListener('click', () => showPage(button.dataset.page));
+            });
+
+            // === ADD SHIPMENT PAGE ===
+            
+            // Set current date
+            const today = new Date().toISOString().split('T')[0];
+            shipmentDateInput.value = today;
+            updateDateDay(today);
+
+            shipmentDateInput.addEventListener('change', (e) => updateDateDay(e.target.value));
+
+            // UPDATED: This function now uses the '10 November 2025' format
+            function updateDateDay(dateString) {
+                if (!dateString) {
+                    dateDaySpan.textContent = '';
+                    return;
+                }
+                dateDaySpan.textContent = formatDate_d_Month_YYYY(dateString);
+            }
+
+            // Calculations
+            function updateCalculations() {
+                const qty = parseFloat(quantityInput.value) || 0;
+                const pkr = parseFloat(pkrInput.value) || 0;
+                const eachDiscount = parseFloat(eachDiscountInput.value) || 0;
+                const commission = parseFloat(commissionInput.value) || 0;
+                
+                const totalPkr = qty * pkr;
+                const afterDiscount = pkr - eachDiscount + commission;
+                const total = afterDiscount * qty;
+                
+                totalPkrInput.value = totalPkr.toFixed(0);
+                afterDiscountInput.value = afterDiscount.toFixed(0);
+                totalInput.value = total.toFixed(0);
+            }
+
+            function calculateEachDiscount() {
+                const pkr = parseFloat(pkrInput.value) || 0;
+                const discountPercent = parseFloat(discountPercentInput.value) || 0;
+                const eachDiscount = pkr * (discountPercent / 100);
+                eachDiscountInput.value = eachDiscount.toFixed(0);
+                // Trigger other calculations that depend on this
+                updateCalculations();
+            }
+            
+            [quantityInput, pkrInput, commissionInput].forEach(input => {
+                input.addEventListener('input', updateCalculations);
+            });
+            
+            [pkrInput, discountPercentInput].forEach(input => {
+                input.addEventListener('input', calculateEachDiscount);
+            });
+
+            // Product Code Check (on change)
+            productCodeInput.addEventListener('change', async () => {
+                const code = productCodeInput.value;
+                if (code.length < 1) { // Changed from 3 to 1
+                    productHistoryDiv.classList.add('hidden');
+                    return;
+                }
+                const result = await apiCall('checkProductCode', { code });
+                if (result && result.totalQty > 0) {
+                    let historyHtml = `<strong>Previous Entries (${result.totalQty} Total):</strong><br>`;
+                    result.history.forEach(item => {
+                        // UPDATED: Use the new 'Monday, 10 November 2025' format
+                        historyHtml += `<span>${formatDateWithDay(item.date)}: ${item.qty} pcs</span><br>`;
+                    });
+                    productHistoryDiv.innerHTML = historyHtml;
+                    productHistoryDiv.classList.remove('hidden');
+                } else if (result) {
+                    productHistoryDiv.textContent = 'No previous entries found.';
+                    productHistoryDiv.classList.remove('hidden');
+                } else {
+                    // API call failed, hide the div
+                    productHistoryDiv.classList.add('hidden');
+                }
+            });
+
+            // Brand/Vendor Add Buttons
+            brandNameInput.addEventListener('input', () => {
+                const val = brandNameInput.value;
+                const isAdmin = state.currentUser && state.currentUser.access && state.currentUser.access.toLowerCase() === 'admin';
+                addBrandBtn.classList.toggle('hidden', !isAdmin || !val || state.brands.includes(val));
+            });
+            
+            vendorNameInput.addEventListener('input', () => {
+                const val = vendorNameInput.value;
+                const isAdmin = state.currentUser && state.currentUser.access && state.currentUser.access.toLowerCase() === 'admin';
+                addVendorBtn.classList.toggle('hidden', !isAdmin || !val || state.vendors.includes(val));
+            });
+
+            addBrandBtn.addEventListener('click', async () => {
+                const brandName = brandNameInput.value;
+                const result = await apiCall('addBrand', { brandName });
+                if (result) {
+                    state.brands.push(result.brandName);
+                    populateDatalists();
+                    addBrandBtn.classList.add('hidden');
+                    showAlert(`Brand '${brandName}' added.`);
+                }
+            });
+            
+            addVendorBtn.addEventListener('click', async () => {
+                const vendorName = vendorNameInput.value;
+                const result = await apiCall('addVendor', { vendorName });
+                if (result) {
+                    state.vendors.push(result.vendorName);
+                    populateDatalists();
+                    addVendorBtn.classList.add('hidden');
+                    showAlert(`Vendor '${vendorName}' added.`);
+                }
+            });
+
+
+            // Function to reset only specific fields
+            function resetAddShipmentForm() {
+                productCodeInput.value = '';
+                quantityInput.value = '';
+                pkrInput.value = '';
+                totalPkrInput.value = '';
+                weightInput.value = '';
+                discountPercentInput.value = '';
+                eachDiscountInput.value = '';
+                commissionInput.value = '';
+                afterDiscountInput.value = '';
+                totalInput.value = '';
+                productHistoryDiv.classList.add('hidden');
+            }
+
+            // Add to List
+            addToListBtn.addEventListener('click', () => {
+                const item = {
+                    productCode: productCodeInput.value,
+                    brandName: brandNameInput.value,
+                    quantity: parseFloat(quantityInput.value) || 0,
+                    pkr: parseFloat(pkrInput.value) || 0,
+                    totalPkr: parseFloat(totalPkrInput.value) || 0,
+                    weight: (parseFloat(weightInput.value) || 0) / 1000, // Convert g to kg
+                    discountPercent: parseFloat(discountPercentInput.value) || 0,
+                    eachDiscountAmount: parseFloat(eachDiscountInput.value) || 0,
+                    commissionAmount: parseFloat(commissionInput.value) || 0,
+                    afterDiscount: parseFloat(afterDiscountInput.value) || 0,
+                    shipmentDate: shipmentDateInput.value,
+                    vendorName: vendorNameInput.value,
+                    total: parseFloat(totalInput.value) || 0,
+                    id: Date.now() // Unique ID for temp list
+                };
+                
+                // Simple validation
+                if (!item.productCode || !item.brandName || !item.quantity || !item.shipmentDate || !item.vendorName) {
+                    showAlert('Please fill all required fields (Code, Brand, Qty, Date, Vendor).', true);
+                    return;
+                }
+                
+                state.tempShipmentList.push(item);
+                renderTempList();
+                
+                // Call partial reset function
+                resetAddShipmentForm(); 
+            });
+            
+            function renderTempList() {
+                tempListBody.innerHTML = '';
+                if (state.tempShipmentList.length === 0) {
+                    saveShipmentBtn.classList.add('hidden');
+                    return;
+                }
+                
+                state.tempShipmentList.forEach((item, index) => {
+                    const row = `
+                        <tr data-id="${item.id}">
+                            <td class="px-3 py-2 whitespace-nowrap text-sm">${item.productCode}</td>
+                            <td class="px-3 py-2 whitespace-nowrap text-sm">${item.brandName}</td>
+                            <td class="px-3 py-2 whitespace-nowrap text-sm">${item.quantity}</td>
+                            <td class="px-3 py-2 whitespace-nowrap text-sm">${item.pkr.toFixed(0)}</td>
+                            <td class="px-3 py-2 whitespace-nowrap text-sm">${item.totalPkr.toFixed(0)}</td>
+                            <td class="px-3 py-2 whitespace-nowrap text-sm">${item.weight.toFixed(3)}</td>
+                            <td class="px-3 py-2 whitespace-nowrap text-sm">${item.discountPercent}</td>
+                            <td class="px-3 py-2 whitespace-nowrap text-sm">${item.eachDiscountAmount.toFixed(0)}</td>
+                            <td class="px-3 py-2 whitespace-nowrap text-sm">${item.commissionAmount.toFixed(0)}</td>
+                            <td class="px-3 py-2 whitespace-nowrap text-sm">${item.afterDiscount.toFixed(0)}</td>
+                            <td class="px-3 py-2 whitespace-nowrap text-sm">${formatDate_d_Month_YYYY(item.shipmentDate)}</td>
+                            <td class="px-3 py-2 whitespace-nowrap text-sm">${item.vendorName}</td>
+                            <td class="px-3 py-2 whitespace-nowrap text-sm">${item.total.toFixed(0)}</td>
+                            <td class="px-3 py-2 whitespace-nowrap text-sm">
+                                <button class="remove-item-btn text-red-500 hover:text-red-700" data-id="${item.id}">Remove</button>
+                            </td>
+                        </tr>
+                    `;
+                    tempListBody.innerHTML += row;
+                });
+                
+                // Add event listeners to new remove buttons
+                document.querySelectorAll('.remove-item-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const id = parseInt(e.target.dataset.id);
+                        state.tempShipmentList = state.tempShipmentList.filter(item => item.id !== id);
+                        renderTempList();
+                    });
+                });
+                
+                saveShipmentBtn.classList.remove('hidden');
+            }
+            
+            // Save Shipment
+            saveShipmentBtn.addEventListener('click', async () => {
+                const result = await apiCall('saveShipment', { items: state.tempShipmentList });
+                if (result) {
+                    showAlert(`Successfully saved ${result.saved} items.`);
+                    state.tempShipmentList = [];
+                    renderTempList();
+                    // Clear the main shipment list cache to force refresh
+                    state.allShipments = []; 
+                }
+            });
+
+            // === SHIPMENT DETAILS PAGE ===
+            
+            async function loadShipmentDetails() {
+                const result = await apiCall('getShipmentDetails');
+                if (result) {
+                    state.allShipments = result.data;
+                    state.currentShipmentDetails = state.allShipments; // By default, show all
+                    renderDetailsTable(state.currentShipmentDetails);
+                }
+            }
+            
+            function renderDetailsTable(data) {
+                if (data.length === 0) {
+                    detailsTableHead.innerHTML = '';
+                    detailsTableBody.innerHTML = '<tr><td colspan="100%" class="text-center p-4">No data found.</td></tr>';
+                    return;
+                }
+                
+                // Create headers
+                const headers = Object.keys(data[0]).filter(h => h !== 'rowId');
+                let headHtml = '';
+                headers.forEach(h => {
+                    headHtml += `<th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">${h}</th>`;
+                });
+                // Case-insensitive admin check
+                const isAdmin = state.currentUser && state.currentUser.access && state.currentUser.access.toLowerCase() === 'admin';
+                if (isAdmin) {
+                    headHtml += `<th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>`;
+                }
+                detailsTableHead.innerHTML = `<tr>${headHtml}</tr>`;
+                
+                // Create body
+                let bodyHtml = '';
+                data.forEach(item => {
+                    bodyHtml += `<tr data-row-id="${item.rowId}">`;
+                    headers.forEach(header => {
+                        let value = item[header];
+                        // *** UPDATED: Format date to 'Monday, 10 November 2025' ***
+                        if (header === 'SHIPMENT DATE' && value) {
+                            value = formatDateWithDay(value);
+                        }
+                        if (header === 'WEIGHT' && value) {
+                            value = (parseFloat(value) || 0).toFixed(3);
+                        }
+                        bodyHtml += `<td class="px-3 py-2 whitespace-nowrap text-sm">${value}</td>`;
+                    });
+                    if (isAdmin) {
+                        bodyHtml += `<td class="px-3 py-2 whitespace-nowrap text-sm">
+                                       <button class="edit-btn text-blue-500 hover:text-blue-700" data-row-id="${item.rowId}">Edit</button>
+                                   </td>`;
+                    }
+                    bodyHtml += `</tr>`;
+                });
+                detailsTableBody.innerHTML = bodyHtml;
+                
+                // Add edit button listeners
+                document.querySelectorAll('.edit-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => openEditModal(e.target.dataset.rowId));
+                });
+            }
+
+            // *** UPDATED: Search on 'Enter' key press ***
+            searchBox.addEventListener('keyup', async (e) => {
+                if (e.key === 'Enter') {
+                    const code = searchBox.value;
+                    searchTotalDiv.classList.add('hidden'); // Hide on new search
+                    
+                    if (!code) {
+                        state.currentShipmentDetails = state.allShipments; // Reset to full list
+                        renderDetailsTable(state.currentShipmentDetails);
+                        return;
+                    }
+                    
+                    const result = await apiCall('searchShipments', { code });
+                    
+                    if (result) {
+                        state.currentShipmentDetails = result.data; // Store filtered data
+                        renderDetailsTable(state.currentShipmentDetails);
+                        
+                        if (result.data.length > 0) {
+                            const totalQty = result.data.reduce((sum, item) => sum + (parseFloat(item['QUANTITY']) || 0), 0);
+                            searchTotalDiv.textContent = `Product Code: ${code} - Total Quantity: ${totalQty}`;
+                            searchTotalDiv.classList.remove('hidden');
+                        }
+                    }
+                }
+            });
+            
+            downloadDetailsBtn.addEventListener('click', () => {
+                // Download only the *currently displayed* data
+                const dataToDownload = state.currentShipmentDetails.map(item => {
+                    // Create a new object to avoid modifying the state
+                    const newItem = {...item};
+                    delete newItem.rowId; // Remove rowId for download
+                    
+                    // *** UPDATED: Format date for Excel download to 'Monday, 10 November 2025' ***
+                    if (newItem['SHIPMENT DATE']) {
+                        newItem['SHIPMENT DATE'] = formatDateWithDay(newItem['SHIPMENT DATE']);
+                    }
+                    return newItem;
+                });
+                
+                const ws = XLSX.utils.json_to_sheet(dataToDownload);
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, 'Shipment Details');
+                XLSX.writeFile(wb, 'Shipment_Details.xlsx');
+            });
+
+            // === EDIT MODAL ===
+            function openEditModal(rowId) {
+                const item = state.allShipments.find(s => s.rowId == rowId);
+                if (!item) return;
+                
+                state.editingRowId = rowId;
+                editForm.innerHTML = ''; // Clear previous form
+                
+                const itemKeys = {
+                    'PRODUCTS CODE': 'productCode',
+                    'BRAND NAME': 'brandName',
+                    'QUANTITY': 'quantity',
+                    'PKR': 'pkr',
+                    'TOTAL PKR': 'totalPkr',
+                    'WEIGHT': 'weight',
+                    'DISCOUNT %': 'discountPercent',
+                    'EACH DISCOUNT AMOUNT': 'eachDiscountAmount',
+                    'COMMISSION AMOUNT': 'commissionAmount',
+                    'AFTER DISCOUNT': 'afterDiscount',
+                    'SHIPMENT DATE': 'shipmentDate',
+                    'VENDOR NAME': 'vendorName',
+                    'TOTAL': 'total',
+                };
+
+                shipmentHeaders.forEach(header => {
+                    const key = itemKeys[header];
+                    let value = item[header];
+                    let inputType = 'text';
+                    let isReadOnly = false;
+                    let listName = '';
+                    
+                    if (['TOTAL PKR', 'EACH DISCOUNT AMOUNT', 'AFTER DISCOUNT', 'TOTAL'].includes(header)) {
+                        isReadOnly = true;
+                    }
+
+                    if (header === 'BRAND NAME') listName = 'brand-list';
+                    if (header === 'VENDOR NAME') listName = 'vendor-list';
+                    
+                    if (typeof value === 'number') {
+                        inputType = 'number';
+                    }
+                    if (header === 'SHIPMENT DATE' && value) {
+                        inputType = 'date';
+                        value = new Date(value).toLocaleDateString('en-CA'); // yyyy-mm-dd format
+                    }
+                    if (header === 'WEIGHT' && value) {
+                        value = (parseFloat(value) || 0) * 1000; // Convert kg back to g
+                    }
+                    
+                    editForm.innerHTML += `
+                        <div>
+                            <label for="edit-${key}" class="block text-sm font-medium text-gray-700">${header}</label>
+                            <input type="${inputType}" id="edit-${key}" data-key="${key}" data-header="${header}" value="${value}"
+                                   ${listName ? `list="${listName}"` : ''}
+                                   ${isReadOnly ? 'readonly' : ''}
+                                   class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${isReadOnly ? 'bg-gray-100' : ''}">
+                        </div>
+                    `;
+                });
+                
+                // Add calculation logic to edit modal inputs
+                const editQty = document.getElementById('edit-quantity');
+                const editPkr = document.getElementById('edit-pkr');
+                const editTotalPkr = document.getElementById('edit-totalPkr');
+                const editDiscountPercent = document.getElementById('edit-discountPercent');
+                const editEachDiscount = document.getElementById('edit-eachDiscountAmount');
+                const editCommission = document.getElementById('edit-commissionAmount'); 
+                const editAfterDiscount = document.getElementById('edit-afterDiscount');
+                const editTotal = document.getElementById('edit-total');
+
+                function calculateEditEachDiscount() {
+                    const pkr = parseFloat(editPkr.value) || 0;
+                    const discountPercent = parseFloat(editDiscountPercent.value) || 0;
+                    const eachDiscount = pkr * (discountPercent / 100);
+                    editEachDiscount.value = eachDiscount.toFixed(0);
+                    updateEditCalculations(); // Trigger main calculation
                 }
 
-                oscillator.start();
-                oscillator.stop(audioContext.currentTime + 0.1); 
-            } catch (e) {
-                console.warn("Could not play beep sound.", e);
-            }
-        }
+                function updateEditCalculations() {
+                    const qty = parseFloat(editQty.value) || 0;
+                    const pkr = parseFloat(editPkr.value) || 0;
+                    const eachDiscount = parseFloat(editEachDiscount.value) || 0;
+                    const commission = parseFloat(editCommission.value) || 0;
+                    
+                    const totalPkr = qty * pkr;
+                    const afterDiscount = pkr - eachDiscount + commission;
+                    const total = afterDiscount * qty;
+                    
+                    editTotalPkr.value = totalPkr.toFixed(0);
+                    editAfterDiscount.value = afterDiscount.toFixed(0);
+                    editTotal.value = total.toFixed(0);
+                }
 
-        /**
-         * Shows a temporary status message in a fixed position. (Custom alert replacement)
-         */
-        function showTemporaryMessage(message, type = 'blue') {
-            let colorClass = 'bg-blue-600';
-            if (type === 'red') colorClass = 'bg-red-600';
-            if (type === 'green') colorClass = 'bg-green-600';
+                // Attach listeners
+                [editQty, editPkr, editCommission].forEach(input => {
+                    if(input) input.addEventListener('input', updateEditCalculations);
+                });
+                
+                [editPkr, editDiscountPercent].forEach(input => {
+                    if(input) input.addEventListener('input', calculateEditEachDiscount);
+                });
+
+                editModal.classList.remove('hidden');
+            }
             
-            let messageBox = document.getElementById('temp-message-box');
-            if (!messageBox) {
-                messageBox = document.createElement('div');
-                messageBox.id = 'temp-message-box';
-                messageBox.className = 'fixed top-4 left-1/2 transform -translate-x-1/2 text-white px-6 py-3 rounded-lg shadow-xl transition-opacity duration-500 z-50';
-                document.body.appendChild(messageBox);
+            cancelEditBtn.addEventListener('click', () => {
+                editModal.classList.add('hidden');
+                state.editingRowId = null;
+            });
+            
+            updateShipmentBtn.addEventListener('click', async () => {
+                const updatedItem = {};
+                editForm.querySelectorAll('input').forEach(input => {
+                    const key = input.dataset.key;
+                    const header = input.dataset.header;
+                    let value = input.value;
+                    if (input.type === 'number') value = parseFloat(value) || 0;
+                    if (input.type === 'date') value = new Date(input.value).toISOString(); // Store as ISO string
+                    
+                    if (header === 'WEIGHT') {
+                        value = (parseFloat(input.value) || 0) / 1000; // Convert g to kg
+                    }
+
+                    updatedItem[key] = value;
+                });
+                
+                const result = await apiCall('updateShipment', { rowId: state.editingRowId, data: updatedItem });
+                
+                if (result) {
+                    showAlert('Shipment updated successfully.');
+                    editModal.classList.add('hidden');
+                    loadShipmentDetails(); // Refresh data
+                }
+            });
+
+            // === PRICING PAGE ===
+
+            // UPDATED: Added listener to update the new date display span
+            pricingDateInput.addEventListener('change', (e) => {
+                pricingDateDisplay.textContent = formatDate_d_Month_YYYY(e.target.value);
+            });
+
+            loadPricingBtn.addEventListener('click', async () => {
+                const date = pricingDateInput.value;
+                if (!date) {
+                    showAlert('Please select a date.', true);
+                    return;
+                }
+                
+                const result = await apiCall('getPricingData', { date });
+                
+                if (result && result.data.length > 0) {
+                    state.pricingData = result.data;
+                    renderPricingTable(result.data);
+                    downloadPricingBtn.disabled = false;
+                } else {
+                    state.pricingData = [];
+                    pricingTableHead.innerHTML = '';
+                    pricingTableBody.innerHTML = '<tr><td colspan="100%" class="text-center p-4">No data found for this date.</td></tr>';
+                    downloadPricingBtn.disabled = true;
+                }
+            });
+            
+            function renderPricingTable(data) {
+                // Headers
+                pricingTableHead.innerHTML = `<tr>${pricingHeaders.map(h => `<th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">${h}</th>`).join('')}</tr>`;
+                
+                // Body
+                let bodyHtml = '';
+                data.forEach((item, index) => {
+                    bodyHtml += '<tr>';
+                    bodyHtml += `<td class="px-3 py-2 whitespace-nowrap text-sm">${index + 1}</td>`; // SL
+                    bodyHtml += `<td class="px-3 py-2 whitespace-nowrap text-sm">${item['PRODUCTS CODE']}</td>`; // CODE
+                    bodyHtml += `<td class="px-3 py-2 whitespace-nowrap text-sm">${item['QUANTITY']}</td>`; // QUANTITY
+                    bodyHtml += `<td class="px-3 py-2 whitespace-nowrap text-sm">${(parseFloat(item['WEIGHT']) || 0).toFixed(3)}</td>`; // WEIGHT
+                    bodyHtml += `<td class="px-3 py-2 whitespace-nowrap text-sm">${item['AFTER DISCOUNT']}</td>`; // PKR (from AFTER DISCOUNT)
+                    bodyHtml += `<td class="px-3 py-2 whitespace-nowrap text-sm"></td>`; // BD (empty)
+                    bodyHtml += `<td class="px-3 py-2 whitespace-nowrap text-sm"></td>`; // BUY (empty)
+                    bodyHtml += `<td class="px-3 py-2 whitespace-nowrap text-sm"></td>`; // SELLING (empty)
+                    bodyHtml += `<td class="px-3 py-2 whitespace-nowrap text-sm"></td>`; // PREVIOSE SELLING (empty)
+                    bodyHtml += `<td class="px-3 py-2 whitespace-nowrap text-sm">${item['PKR']}</td>`; // ORGINAL RATE (from PKR)
+                    bodyHtml += `<td class="px-3 py-2 whitespace-nowrap text-sm">${item['BRAND NAME']}</td>`; // BRAND NAME
+                    bodyHtml += '</tr>';
+                });
+                pricingTableBody.innerHTML = bodyHtml;
             }
 
-            messageBox.textContent = message;
-            messageBox.className = `fixed top-4 left-1/2 transform -translate-x-1/2 text-white px-6 py-3 rounded-lg shadow-xl transition-opacity duration-500 z-50 ${colorClass} opacity-100`;
+            downloadPricingBtn.addEventListener('click', () => {
+                const dataToDownload = state.pricingData.map((item, index) => ({
+                    'SL': index + 1,
+                    'CODE': item['PRODUCTS CODE'],
+                    'QUANTITY': item['QUANTITY'],
+                    'WEIGHT': (parseFloat(item['WEIGHT']) || 0).toFixed(3), // Format weight
+                    'PKR': item['AFTER DISCOUNT'],
+                    'BD': '',
+                    'BUY': '',
+                    'SELLING': '',
+                    'PREVIOSE SELLING': '',
+                    'ORGINAL RATE': item['PKR'],
+                    'BRAND NAME': item['BRAND NAME']
+                }));
+                
+                const ws = XLSX.utils.json_to_sheet(dataToDownload, { header: pricingHeaders });
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, 'Pricing Report');
+                XLSX.writeFile(wb, `Pricing_Report_${pricingDateInput.value}.xlsx`);
+            });
 
-            clearTimeout(messageBox.timeout);
-            messageBox.timeout = setTimeout(() => {
-                messageBox.classList.remove('opacity-100');
-                messageBox.classList.add('opacity-0');
-            }, 3000);
-        }
+        });
     </script>
 </body>
 </html>
