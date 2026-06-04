@@ -6,6 +6,7 @@
     <title>Inventory Mismatch</title>
     <!-- Load Tailwind CSS for styling -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
         /* Custom styles for disabled elements */
         :disabled {
@@ -179,7 +180,7 @@
 
     <script>
         // --- !! IMPORTANT !! ---
-        const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbySgUuEAQ1hT_G920GIUSVBOf80nZg7sckoG0XWZFB22fqWU1TiBtpUtdk89FcvThHF/exec';
+        const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbyl4x0ST6AiUHpFi9cNXLLcR4D1V2i412LTOn6o_YakyiNzt7ngrJpdA4YIxbnL64Glrg/exec';
         
         // --- Global State ---
         let inventoryMap = new Map();
@@ -283,7 +284,39 @@
             scanStatus.classList.remove('text-red-600', 'text-yellow-500', 'text-green-600');
 
             try {
-                // Step 1: Fetch Master Inventory Data
+                // Step 1: Fetch Base64 Excel Data from POS API
+                scanStatus.textContent = 'Syncing Live POS Data...';
+                const syncUrl = `${WEB_APP_URL}?action=syncPosData&sheetName=${sheetName}`;
+                const syncResponse = await fetch(syncUrl);
+                const syncResult = await syncResponse.json();
+                if (syncResult.error) throw new Error("POS Sync Error: " + syncResult.error);
+                
+                // Parse the base64 excel data using SheetJS
+                scanStatus.textContent = 'Parsing POS Data...';
+                const binaryStr = atob(syncResult.fileData);
+                const workbook = XLSX.read(binaryStr, { type: 'binary' });
+                const firstSheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[firstSheetName];
+                // Convert to array of arrays (header is row 0)
+                const apiData = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: "" });
+                
+                // Send parsed data to update the sheet
+                scanStatus.textContent = 'Updating Master Sheet...';
+                const updateResponse = await fetch(WEB_APP_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify({
+                        action: 'updateSheetData', 
+                        spreadsheetId: '1La_eywydgT3NqvyeJNeR31lj9u9--M6WJzgfDBmTQaM',
+                        sheetName: sheetName,
+                        apiData: apiData
+                    })
+                });
+                const updateResult = await updateResponse.json();
+                if (updateResult.error) throw new Error("Sheet Update Error: " + updateResult.error);
+
+                // Step 2: Fetch Master Inventory Data
+                scanStatus.textContent = 'Loading master data...';
                 const masterUrl = `${WEB_APP_URL}?action=getMasterData&sheetName=${sheetName}`;
                 const masterResponse = await fetch(masterUrl);
                 const masterData = await masterResponse.json();
@@ -291,14 +324,14 @@
                 
                 scanStatus.textContent = 'Loading scan data...';
 
-                // Step 2: Fetch Existing Scan Data (Both Found and Not Found)
+                // Step 3: Fetch Existing Scan Data (Both Found and Not Found)
                 const scanSheetName = `${sheetName} Scan`;
                 const scanUrl = `${WEB_APP_URL}?action=getScanData&sheetName=${scanSheetName}`;
                 const scanResponse = await fetch(scanUrl);
                 const scanData = await scanResponse.json(); 
                 if (scanData.error) throw new Error(scanData.error);
                 
-                // Step 3: Process all data
+                // Step 4: Process all data
                 onDataLoaded(masterData, scanData);
 
             } catch (error) {
