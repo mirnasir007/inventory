@@ -8,6 +8,14 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
+        html {
+            zoom: 90%;
+        }
+        @media (max-width: 640px) {
+            html {
+                zoom: 100%;
+            }
+        }
         /* Custom styles for disabled elements */
         :disabled {
             background-color: #f3f4f6; /* gray-100 */
@@ -46,28 +54,49 @@
         }
     </style>
 </head>
-<body class="bg-gray-100 font-sans p-4 min-h-screen">
+<body class="bg-gray-100 font-sans p-2 sm:p-4 min-h-screen flex flex-col">
 
-    <div class="max-w-7xl mx-auto bg-white shadow-lg rounded-lg overflow-hidden">
+    <div class="w-full flex-1 bg-white shadow-lg rounded-lg overflow-hidden flex flex-col">
         <!-- Header -->
-        <header class="bg-blue-600 text-white p-4">
+        <header class="bg-blue-600 text-white p-4 flex justify-between items-center">
             <h1 class="text-2xl font-bold">Inventory Mismatch Scanner</h1>
+            <button id="sync-btn" onclick="openSyncModal()" class="flex items-center gap-2 bg-blue-700 hover:bg-blue-800 px-4 py-2 rounded-lg font-semibold transition shadow-md">
+                <svg id="sync-icon" class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                <span id="sync-text">Sync</span>
+            </button>
         </header>
 
         <!-- Tab Navigation -->
-        <nav class="flex border-b">
-            <button id="tab-scan" class="flex-1 p-4 font-semibold tab-active" onclick="switchTab('scan')">Scan</button>
-            <button id="tab-history" class="flex-1 p-4 font-semibold text-gray-500" onclick="switchTab('history')">Mismatching History</button>
-            <button id="tab-no-entry" class="flex-1 p-4 font-semibold text-gray-500" onclick="switchTab('no-entry')">No Entry Product</button>
+<nav class="flex border-b overflow-x-auto whitespace-nowrap">
+            <button id="tab-scan" class="flex-1 p-3 sm:p-4 font-semibold tab-active" onclick="switchTab('scan')">Scan</button>
+            <button id="tab-history" class="flex-1 p-3 sm:p-4 font-semibold text-gray-500" onclick="switchTab('history')">Mismatching History</button>
+            <button id="tab-no-entry" class="flex-1 p-3 sm:p-4 font-semibold text-gray-500" onclick="switchTab('no-entry')">No Entry Product</button>
         </nav>
 
-        <!-- Main Content -->
-        <main class="p-6 space-y-6">
+        <main class="p-4 sm:p-6 space-y-6 flex-1 flex flex-col overflow-hidden">
 
             <!-- Loading Spinner (Initially hidden) -->
-            <div id="loading-overlay" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                <div class="spinner"></div>
-                <span class="text-white text-xl ml-4">Loading Data...</span>
+            <div id="sync-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                <div class="bg-white rounded-lg p-6 w-80 shadow-xl">
+                    <h2 class="text-xl font-bold mb-4 text-gray-800 text-center">Select Store to Sync</h2>
+                    <div class="flex flex-col gap-3">
+                        <button onclick="startSync('Dhanmondi')" class="bg-gray-100 hover:bg-blue-100 text-gray-800 font-semibold py-2 px-4 rounded border border-gray-300 transition">Dhanmondi</button>
+                        <button onclick="startSync('Uttara')" class="bg-gray-100 hover:bg-blue-100 text-gray-800 font-semibold py-2 px-4 rounded border border-gray-300 transition">Uttara</button>
+                        <button onclick="startSync('Banani')" class="bg-gray-100 hover:bg-blue-100 text-gray-800 font-semibold py-2 px-4 rounded border border-gray-300 transition">Banani</button>
+                    </div>
+                    <button onclick="closeSyncModal()" class="mt-4 w-full text-red-500 font-semibold py-2 hover:bg-red-50 rounded transition">Cancel</button>
+                </div>
+            </div>
+
+            <div id="sync-success-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                <div class="bg-white rounded-lg p-6 w-96 shadow-xl text-center">
+                    <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                    </div>
+                    <h2 class="text-xl font-bold mb-2 text-gray-800">Sync Complete!</h2>
+                    <p id="sync-success-message" class="text-gray-600 mb-6">Downloaded 0 items.</p>
+                    <button onclick="closeSyncSuccessModal()" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-6 rounded-lg w-full transition">Close</button>
+                </div>
             </div>
             
             <!-- Scan Page -->
@@ -84,7 +113,10 @@
                         </select>
                     </div>
                     <div class="self-end">
-                        <button id="load-data-btn" class="w-full sm:w-auto bg-blue-600 text-white px-5 py-2 rounded-lg shadow-sm hover:bg-blue-700 transition-colors">Load Data</button>
+                        <button id="load-data-btn" class="w-full sm:w-auto bg-blue-600 text-white px-5 py-2 rounded-lg shadow-sm hover:bg-blue-700 transition-colors flex items-center justify-center gap-2">
+                            <svg id="load-icon" class="w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                            <span id="load-text">Load Data</span>
+                        </button>
                     </div>
                 </div>
 
@@ -98,9 +130,9 @@
                 <!-- Scanned Items Table -->
                 <div class="mt-6">
                     <h3 class="text-lg font-semibold text-gray-800 mb-2">Recently Scanned (Found Items)</h3>
-                    <div class="max-h-64 overflow-y-auto border rounded-lg">
+                    <div class="max-h-64 overflow-auto border rounded-lg">
                         <table class="min-w-full divide-y divide-gray-200">
-                            <thead class="bg-gray-50">
+                            <thead class="bg-gray-100 sticky top-0 z-10 shadow-sm">
                                 <tr>
                                     <th class="p-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Item Name</th>
                                     <th class="p-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">BAL QTY</th>
@@ -119,25 +151,26 @@
             </div>
 
             <!-- Mismatching History Page -->
-            <div id="page-history" class="hidden space-y-6">
-                <!-- ... (History page structure is unchanged) ... -->
-                <div class="flex justify-between items-center">
-                    <h2 class="text-2xl font-semibold text-gray-800">Mismatch Report</h2>
-                    <button id="download-csv-btn" class="bg-green-600 text-white px-5 py-2 rounded-lg shadow-sm hover:bg-green-700 transition-colors">Download CSV</button>
+<div id="page-history" class="hidden space-y-4">
+                <div class="bg-white z-20 pb-2 border-b">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-3">
+                        <h2 class="text-xl sm:text-2xl font-semibold text-gray-800">Mismatch Report</h2>
+                        <button id="download-csv-btn" class="w-full sm:w-auto bg-green-600 text-white px-5 py-2 rounded-lg shadow-sm hover:bg-green-700 transition-colors">Download CSV</button>
+                    </div>
+                    <div class="flex flex-wrap gap-4">
+                        <label class="flex items-center space-x-2">
+                            <input type="checkbox" id="filter-mismatch" class="rounded text-blue-600 focus:ring-blue-500" checked onchange="renderHistoryTable()">
+                            <span class="text-sm sm:text-base text-gray-700">Show Mismatches Only</span>
+                        </label>
+                        <label class="flex items-center space-x-2">
+                            <input type="checkbox" id="filter-scanned" class="rounded text-blue-600 focus:ring-blue-500" onchange="renderHistoryTable()">
+                            <span class="text-sm sm:text-base text-gray-700">Show Only Scanned Items</span>
+                        </label>
+                    </div>
                 </div>
-                <div class="flex gap-4">
-                    <label class="flex items-center space-x-2">
-                        <input type="checkbox" id="filter-mismatch" class="rounded text-blue-600 focus:ring-blue-500" checked onchange="renderHistoryTable()">
-                        <span class="text-gray-700">Show Mismatches Only</span>
-                    </label>
-                    <label class="flex items-center space-x-2">
-                        <input type="checkbox" id="filter-scanned" class="rounded text-blue-600 focus:ring-blue-500" onchange="renderHistoryTable()">
-                        <span class="text-gray-700">Show Only Scanned Items</span>
-                    </label>
-                </div>
-                <div class="overflow-x-auto border rounded-lg shadow">
+                <div class="overflow-auto border rounded-lg shadow max-h-[60vh]">
                     <table id="mismatch-table" class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-50">
+                        <thead class="bg-gray-100 sticky top-0 z-10 shadow-sm">
                             <tr>
                                 <th class="p-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">CODE</th>
                                 <th class="p-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">BARCODE</th>
@@ -154,12 +187,13 @@
             </div>
             
             <!-- No Entry Product Page (Updated: Text removed) -->
-            <div id="page-no-entry" class="hidden space-y-6">
-                <h2 class="text-2xl font-semibold text-gray-800">"No Entry" Products (Not in Master List)</h2>
-                <!-- The descriptive text has been removed as requested -->
-                <div class="overflow-x-auto border rounded-lg shadow">
+<div id="page-no-entry" class="hidden space-y-4">
+                <div class="bg-white z-20 pb-2 border-b">
+                    <h2 class="text-xl sm:text-2xl font-semibold text-gray-800">"No Entry" Products (Not in Master List)</h2>
+                </div>
+                <div class="overflow-auto border rounded-lg shadow max-h-[60vh]">
                     <table id="no-entry-table" class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-50">
+                        <thead class="bg-gray-100 sticky top-0 z-10 shadow-sm">
                             <tr>
                                 <th class="p-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">SKU (Scanned)</th>
                                 <th class="p-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Scanned Quantity</th>
@@ -193,10 +227,15 @@
         const scanInput = document.getElementById('scan-input');
         const scanStatus = document.getElementById('scan-status');
         const shopSelect = document.getElementById('shop-select');
+        const syncBtn = document.getElementById('sync-btn');
+        const syncText = document.getElementById('sync-text');
+        const syncIcon = document.getElementById('sync-icon');
+        const syncModal = document.getElementById('sync-modal');
+        const syncSuccessModal = document.getElementById('sync-success-modal');
+        const syncSuccessMessage = document.getElementById('sync-success-message');
         const loadBtn = document.getElementById('load-data-btn');
         const downloadBtn = document.getElementById('download-csv-btn');
         const scanForm = document.getElementById('scan-form');
-        const loadingOverlay = document.getElementById('loading-overlay');
         const scanLogBody = document.getElementById('scan-log-body');
         const scanLogPlaceholder = document.getElementById('scan-log-placeholder');
         const mismatchTableBody = document.getElementById('mismatch-table-body');
@@ -248,27 +287,108 @@
         // --- Loading Spinner ---
         function showLoading(isLoading) {
             if (isLoading) {
-                loadingOverlay.classList.remove('hidden');
                 loadBtn.disabled = true;
             } else {
-                loadingOverlay.classList.add('hidden');
                 loadBtn.disabled = false;
             }
         }
 
+        function openSyncModal() {
+            syncModal.classList.remove('hidden');
+        }
+
+        function closeSyncModal() {
+            syncModal.classList.add('hidden');
+        }
+
+        function closeSyncSuccessModal() {
+            syncSuccessModal.classList.add('hidden');
+        }
+
+        async function startSync(shopName) {
+            closeSyncModal();
+            syncBtn.disabled = true;
+            syncIcon.classList.add('animate-spin');
+            
+            let progress = 0;
+            const progressInterval = setInterval(() => {
+                progress += Math.floor(Math.random() * 10) + 1;
+                if (progress > 95) progress = 95;
+                syncText.textContent = `Syncing ${progress}%`;
+            }, 500);
+
+            try {
+                const syncUrl = `${WEB_APP_URL}?action=syncPosData&sheetName=${shopName}`;
+                const syncResponse = await fetch(syncUrl);
+                const syncResult = await syncResponse.json();
+                if (syncResult.error) throw new Error("POS Sync Error: " + syncResult.error);
+                
+                const binaryStr = atob(syncResult.fileData);
+                const workbook = XLSX.read(binaryStr, { type: 'binary' });
+                const firstSheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[firstSheetName];
+                const apiData = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: "" });
+                
+                const updateResponse = await fetch(WEB_APP_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify({
+                        action: 'updateSheetData', 
+                        spreadsheetId: '1La_eywydgT3NqvyeJNeR31lj9u9--M6WJzgfDBmTQaM',
+                        sheetName: shopName,
+                        apiData: apiData
+                    })
+                });
+                const updateResult = await updateResponse.json();
+                if (updateResult.error) throw new Error("Sheet Update Error: " + updateResult.error);
+
+                clearInterval(progressInterval);
+                syncText.textContent = `100%`;
+                
+                setTimeout(() => {
+                    syncText.textContent = 'Sync';
+                    syncIcon.classList.remove('animate-spin');
+                    syncBtn.disabled = false;
+                    syncSuccessMessage.textContent = `Downloaded ${apiData.length} items from ${shopName}.`;
+                    syncSuccessModal.classList.remove('hidden');
+                }, 500);
+
+            } catch (error) {
+                clearInterval(progressInterval);
+                syncText.textContent = 'Sync';
+                syncIcon.classList.remove('animate-spin');
+                syncBtn.disabled = false;
+                showTemporaryMessage('Sync Failed: ' + error.message, 'red');
+            }
+        }
+
         /**
-         * Fetches BOTH master data and scan data from the Google Sheet backend.
+         * Fetches ONLY master data and scan data from the Google Sheet backend.
          */
         async function loadData() {
             const sheetName = shopSelect.value;
             if (!sheetName) {
-                // Use custom message box instead of alert()
                 showTemporaryMessage('Please select a shop first.', 'red');
                 return;
             }
             
             showLoading(true);
             scanInput.disabled = true;
+            
+            const loadBtnEl = document.getElementById('load-data-btn');
+            const loadIcon = document.getElementById('load-icon');
+            const loadText = document.getElementById('load-text');
+            
+            loadBtnEl.disabled = true;
+            loadIcon.classList.remove('hidden');
+            loadIcon.classList.add('animate-spin');
+            
+            let progress = 0;
+            const progressInterval = setInterval(() => {
+                progress += Math.floor(Math.random() * 15) + 5;
+                if (progress > 95) progress = 95;
+                loadText.textContent = `Loading ${progress}%`;
+            }, 300);
 
             // Clear all previous data
             inventoryMap.clear();
@@ -284,39 +404,7 @@
             scanStatus.classList.remove('text-red-600', 'text-yellow-500', 'text-green-600');
 
             try {
-                // Step 1: Fetch Base64 Excel Data from POS API
-                scanStatus.textContent = 'Syncing Live POS Data...';
-                const syncUrl = `${WEB_APP_URL}?action=syncPosData&sheetName=${sheetName}`;
-                const syncResponse = await fetch(syncUrl);
-                const syncResult = await syncResponse.json();
-                if (syncResult.error) throw new Error("POS Sync Error: " + syncResult.error);
-                
-                // Parse the base64 excel data using SheetJS
-                scanStatus.textContent = 'Parsing POS Data...';
-                const binaryStr = atob(syncResult.fileData);
-                const workbook = XLSX.read(binaryStr, { type: 'binary' });
-                const firstSheetName = workbook.SheetNames[0];
-                const worksheet = workbook.Sheets[firstSheetName];
-                // Convert to array of arrays (header is row 0)
-                const apiData = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: "" });
-                
-                // Send parsed data to update the sheet
-                scanStatus.textContent = 'Updating Master Sheet...';
-                const updateResponse = await fetch(WEB_APP_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                    body: JSON.stringify({
-                        action: 'updateSheetData', 
-                        spreadsheetId: '1La_eywydgT3NqvyeJNeR31lj9u9--M6WJzgfDBmTQaM',
-                        sheetName: sheetName,
-                        apiData: apiData
-                    })
-                });
-                const updateResult = await updateResponse.json();
-                if (updateResult.error) throw new Error("Sheet Update Error: " + updateResult.error);
-
-                // Step 2: Fetch Master Inventory Data
-                scanStatus.textContent = 'Loading master data...';
+                // Step 1: Fetch Master Inventory Data
                 const masterUrl = `${WEB_APP_URL}?action=getMasterData&sheetName=${sheetName}`;
                 const masterResponse = await fetch(masterUrl);
                 const masterData = await masterResponse.json();
@@ -324,17 +412,31 @@
                 
                 scanStatus.textContent = 'Loading scan data...';
 
-                // Step 3: Fetch Existing Scan Data (Both Found and Not Found)
+                // Step 2: Fetch Existing Scan Data (Both Found and Not Found)
                 const scanSheetName = `${sheetName} Scan`;
                 const scanUrl = `${WEB_APP_URL}?action=getScanData&sheetName=${scanSheetName}`;
                 const scanResponse = await fetch(scanUrl);
                 const scanData = await scanResponse.json(); 
                 if (scanData.error) throw new Error(scanData.error);
                 
-                // Step 4: Process all data
-                onDataLoaded(masterData, scanData);
+                clearInterval(progressInterval);
+                loadText.textContent = `100%`;
+
+                // Process all data
+                setTimeout(() => {
+                    onDataLoaded(masterData, scanData);
+                    loadIcon.classList.add('hidden');
+                    loadIcon.classList.remove('animate-spin');
+                    loadText.textContent = 'Load Data';
+                    loadBtnEl.disabled = false;
+                }, 500);
 
             } catch (error) {
+                clearInterval(progressInterval);
+                loadIcon.classList.add('hidden');
+                loadIcon.classList.remove('animate-spin');
+                loadText.textContent = 'Load Data';
+                loadBtnEl.disabled = false;
                 onDataError(error);
             }
         }
@@ -365,7 +467,10 @@
             });
 
             // 2. Process Found Scan Data (A:C)
-            foundData.forEach(row => {
+            foundData.forEach((row, index) => {
+                // Ignore header row if present
+                if (index === 0 && (String(row[0]).toUpperCase() === 'SKU' || String(row[0]).toUpperCase() === 'CODE' || String(row[0]).toUpperCase() === 'BARCODE')) return;
+
                 const scannedSku = String(row[0]).toUpperCase();
                 const scannedQty = parseInt(row[2]) || 0;
                 
@@ -380,7 +485,10 @@
             });
 
             // 3. Process Not Found Scan Data (E:F)
-            notFoundData.forEach(row => {
+            notFoundData.forEach((row, index) => {
+                // Ignore header row if present
+                if (index === 0 && (String(row[0]).toUpperCase() === 'SKU' || String(row[0]).toUpperCase() === 'CODE' || String(row[0]).toUpperCase() === 'BARCODE')) return;
+
                 const notFoundSku = String(row[0]).toUpperCase();
                 const notFoundQty = parseInt(row[1]) || 0;
                 if(notFoundSku) {
