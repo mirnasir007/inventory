@@ -155,7 +155,7 @@
                 <div class="bg-white z-20 pb-2 border-b">
                     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-3">
                         <h2 class="text-xl sm:text-2xl font-semibold text-gray-800">Mismatch Report</h2>
-                        <button id="download-csv-btn" class="w-full sm:w-auto bg-green-600 text-white px-5 py-2 rounded-lg shadow-sm hover:bg-green-700 transition-colors">Download CSV</button>
+                        <button id="download-csv-btn" class="w-full sm:w-auto bg-green-600 text-white px-5 py-2 rounded-lg shadow-sm hover:bg-green-700 transition-colors">Download Excel</button>
                     </div>
                     <div class="flex flex-wrap gap-4">
                         <label class="flex items-center space-x-2">
@@ -728,37 +728,53 @@
         }
 
         /**
-         * Downloads the current mismatch report as a CSV file.
+         * Downloads the current mismatch report and no-entry products as an Excel file.
          */
         function downloadCSV() {
             if (fullReport.length === 0) {
                 generateReport(); 
             }
             
-            let csvContent = "data:text/csv;charset=utf-8,";
-            csvContent += "CODE,BARCODE,ITEM NAME,BAL QTY (Sheet),Scan Qty,STATUS\n";
-
+            const shopName = shopSelect.value || 'Shop';
+            const dateStr = new Date().toISOString().split('T')[0];
+            
+            // Sheet 1: Mismatch Report
+            const mismatchData = [["CODE", "BARCODE", "ITEM NAME", "BAL QTY (Sheet)", "Scan Qty", "STATUS"]];
             fullReport.forEach(item => {
-                // Handle commas/quotes in item name
-                const itemNameEscaped = `"${item.itemName.replace(/"/g, '""')}"`; 
-                const row = [
+                mismatchData.push([
                     item.code,
                     item.barcode,
-                    itemNameEscaped,
+                    item.itemName,
                     item.balQty,
                     item.scanned,
                     item.status
-                ].join(",");
-                csvContent += row + "\n";
+                ]);
             });
-
-            const encodedUri = encodeURI(csvContent);
-            const link = document.createElement("a");
-            link.setAttribute("href", encodedUri);
-            link.setAttribute("download", `inventory_mismatch_${shopSelect.value}_${new Date().toISOString().split('T')[0]}.csv`);
-            document.body.appendChild(link); 
-            link.click();
-            document.body.removeChild(link);
+            const wsMismatch = XLSX.utils.aoa_to_sheet(mismatchData);
+            
+            // Sheet 2: No Entry Products
+            const noEntryData = [["SKU", "QTY"]];
+            if (notFoundScanCounts.size > 0) {
+                const sortedItems = Array.from(notFoundScanCounts.entries()).sort((a, b) => a[0].localeCompare(b[0]));
+                sortedItems.forEach(([sku, qty]) => {
+                    noEntryData.push([sku, qty]);
+                });
+            }
+            const wsNoEntry = XLSX.utils.aoa_to_sheet(noEntryData);
+            
+            // Create Workbook
+            const wb = XLSX.utils.book_new();
+            
+            // Excel sheet names max 31 characters
+            const sheet1Name = `inventory_mismatch_${shopName}_${dateStr}`.substring(0, 31);
+            const sheet2Name = `No Entry Product ${shopName}`.substring(0, 31);
+            
+            XLSX.utils.book_append_sheet(wb, wsMismatch, sheet1Name);
+            XLSX.utils.book_append_sheet(wb, wsNoEntry, sheet2Name);
+            
+            // Download Excel File
+            const fileName = `inventory_mismatch_${shopName}_${dateStr}.xlsx`;
+            XLSX.writeFile(wb, fileName);
         }
         
         /**
