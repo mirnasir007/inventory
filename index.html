@@ -58,22 +58,69 @@
 
     <div class="w-full flex-1 bg-white shadow-lg rounded-lg overflow-hidden flex flex-col">
         <!-- Header -->
-        <header class="bg-blue-600 text-white p-4 flex justify-between items-center">
-            <h1 class="text-2xl font-bold">Inventory Mismatch Scanner</h1>
-            <button id="sync-btn" onclick="openSyncModal()" class="flex items-center gap-2 bg-blue-700 hover:bg-blue-800 px-4 py-2 rounded-lg font-semibold transition shadow-md">
-                <svg id="sync-icon" class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
-                <span id="sync-text">Sync</span>
-            </button>
+        <header class="bg-blue-600 text-white p-3 sm:p-4 flex justify-between items-center gap-3">
+            <h1 class="flex-1 min-w-0 text-base sm:text-2xl font-bold leading-tight">Store Inventory</h1>
+            <div class="flex shrink-0 gap-2">
+                <button id="clear-btn" type="button" onclick="openClearModal()" class="relative z-10 flex min-h-11 touch-manipulation items-center gap-2 bg-red-600 hover:bg-red-700 px-3 sm:px-4 py-2 rounded-lg font-semibold transition shadow-md">
+                    <svg id="clear-icon" class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                    <span id="clear-text">Clear</span>
+                </button>
+                <button id="sync-btn" type="button" onclick="openSyncModal()" class="flex min-h-11 touch-manipulation items-center gap-2 bg-blue-700 hover:bg-blue-800 px-3 sm:px-4 py-2 rounded-lg font-semibold transition shadow-md">
+                    <svg id="sync-icon" class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                    <span id="sync-text">Sync</span>
+                </button>
+            </div>
         </header>
 
         <!-- Tab Navigation -->
-<nav class="flex border-b overflow-x-auto whitespace-nowrap">
-            <button id="tab-scan" class="flex-1 p-3 sm:p-4 font-semibold tab-active" onclick="switchTab('scan')">Scan</button>
-            <button id="tab-history" class="flex-1 p-3 sm:p-4 font-semibold text-gray-500" onclick="switchTab('history')">Mismatching History</button>
-            <button id="tab-no-entry" class="flex-1 p-3 sm:p-4 font-semibold text-gray-500" onclick="switchTab('no-entry')">No Entry Product</button>
+<nav class="flex border-b overflow-x-auto whitespace-nowrap bg-white shadow-sm sticky top-0 z-20">
+            <button id="tab-scan" class="flex-1 p-3 sm:p-4 font-semibold tab-active hover:bg-gray-50 transition" onclick="switchTab('scan')">Scan</button>
+            <button id="tab-history" class="flex-1 p-3 sm:p-4 font-semibold text-gray-500 hover:bg-gray-50 transition" onclick="switchTab('history')">Mismatching History</button>
+            <button id="tab-no-entry" class="flex-1 p-3 sm:p-4 font-semibold text-gray-500 hover:bg-gray-50 transition" onclick="switchTab('no-entry')">No Entry Product</button>
         </nav>
 
         <main class="p-4 sm:p-6 space-y-6 flex-1 flex flex-col overflow-hidden">
+
+            <!-- Clear Modal -->
+            <div id="clear-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                <div class="bg-white rounded-lg p-6 w-80 shadow-xl">
+                    <h2 class="text-xl font-bold mb-4 text-gray-800 text-center">Select Store to Clear</h2>
+                    <div class="flex flex-col gap-3">
+                        <button onclick="selectClearStore('Dhanmondi')" class="bg-gray-100 hover:bg-red-100 text-gray-800 font-semibold py-2 px-4 rounded border border-gray-300 transition">Dhanmondi</button>
+                        <button onclick="selectClearStore('Uttara')" class="bg-gray-100 hover:bg-red-100 text-gray-800 font-semibold py-2 px-4 rounded border border-gray-300 transition">Uttara</button>
+                        <button onclick="selectClearStore('Banani')" class="bg-gray-100 hover:bg-red-100 text-gray-800 font-semibold py-2 px-4 rounded border border-gray-300 transition">Banani</button>
+                        <button onclick="selectClearStore('WH')" class="bg-gray-100 hover:bg-red-100 text-gray-800 font-semibold py-2 px-4 rounded border border-gray-300 transition">WH</button>
+                    </div>
+                    <button onclick="closeClearModal()" class="mt-4 w-full text-blue-500 font-semibold py-2 hover:bg-blue-50 rounded transition">Cancel</button>
+                </div>
+            </div>
+
+            <div id="clear-sheet-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                <div class="bg-white rounded-lg p-6 w-80 shadow-xl">
+                    <h2 class="text-xl font-bold mb-2 text-gray-800 text-center">Select Sheets to Clear</h2>
+                    <p id="clear-sheet-store" class="text-sm text-gray-600 text-center mb-4"></p>
+                    <div class="flex flex-col gap-3">
+                        <button onclick="confirmClearSelection('store')" class="bg-gray-100 hover:bg-red-100 text-gray-800 font-semibold py-2 px-4 rounded border border-gray-300 transition"><span id="clear-store-sheet-label">Store</span> Sheets</button>
+                        <button onclick="confirmClearSelection('scan')" class="bg-gray-100 hover:bg-red-100 text-gray-800 font-semibold py-2 px-4 rounded border border-gray-300 transition"><span id="clear-scan-sheet-label">Store Scan</span> Sheets</button>
+                        <button onclick="confirmClearSelection('all')" class="bg-red-100 hover:bg-red-200 text-red-800 font-semibold py-2 px-4 rounded border border-red-300 transition">All Sheets</button>
+                    </div>
+                    <div class="flex gap-2 mt-4">
+                        <button onclick="backToClearStoreModal()" class="flex-1 text-blue-600 font-semibold py-2 hover:bg-blue-50 rounded transition">Back</button>
+                        <button onclick="closeClearModals()" class="flex-1 text-gray-600 font-semibold py-2 hover:bg-gray-100 rounded transition">Cancel</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="clear-confirm-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                <div class="bg-white rounded-lg p-6 w-80 shadow-xl text-center">
+                    <h2 class="text-xl font-bold mb-3 text-gray-800">Confirm Clear</h2>
+                    <p id="clear-confirm-message" class="text-gray-600 mb-6"></p>
+                    <div class="flex gap-3">
+                        <button onclick="cancelClearConfirmation()" class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-800 font-semibold py-2 px-4 rounded transition">Cancel</button>
+                        <button id="confirm-clear-btn" onclick="startClear()" class="flex-1 bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded transition">Clear</button>
+                    </div>
+                </div>
+            </div>
 
             <!-- Loading Spinner (Initially hidden) -->
             <div id="sync-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -126,7 +173,10 @@
                 <form id="scan-form" class="space-y-2">
                     <label for="scan-input" class="block text-sm font-medium text-gray-700">Scan Barcode or Code</label>
                     <input type="text" id="scan-input" placeholder="Scan or type SKU here and press Enter..." class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500" disabled>
-                    <div id="scan-status" class="text-lg h-6"></div>
+                    <div class="flex items-center justify-between gap-3">
+                        <div id="scan-status" class="text-lg min-h-6 flex-1"></div>
+                        <button id="undo-scan-btn" type="button" onclick="undoLastScan()" disabled class="shrink-0 rounded-lg border border-gray-300 px-3 py-2 text-sm font-semibold text-gray-700 transition hover:bg-gray-100">Undo Last Scan</button>
+                    </div>
                 </form>
 
                 <!-- Scanned Items Table -->
@@ -216,20 +266,49 @@
 
     <script>
         // --- !! IMPORTANT !! ---
-        const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbyl4x0ST6AiUHpFi9cNXLLcR4D1V2i412LTOn6o_YakyiNzt7ngrJpdA4YIxbnL64Glrg/exec';
+        const WEB_APP_URL = 'https://store-inventory-backend-z07m.onrender.com/api/exec';
         
         // --- Global State ---
         let inventoryMap = new Map();
         let barcodeToCodeMap = new Map();
         let scanCounts = new Map();
-        let notFoundScanCounts = new Map(); // For "No Entry" items
+        let notFoundScanCounts = new Map(); 
         let fullReport = [];
+        
+        // --- Batch Queue for Fast Scanning ---
+        const SCAN_QUEUE_STORAGE_KEY = 'inventory-scan-queue';
+        const LAST_SCAN_STORAGE_KEY = 'inventory-last-scan';
+        const LOCAL_SCAN_DB_NAME = 'store-inventory-offline';
+        const LOCAL_SCAN_DB_VERSION = 1;
+        let scanQueue = [];
+        let scanQueueRestoreError = null;
+        let lastScan = null;
+        let localScanDbPromise = null;
+        let localScanWriteQueue = Promise.resolve();
+        let isProcessingQueue = false;
+        let scanRetryTimer = null;
+        let scanFlushTimer = null;
+        let scanRetryCount = 0;
 
         // --- DOM Elements ---
         const scanInput = document.getElementById('scan-input');
         const scanStatus = document.getElementById('scan-status');
+        const undoScanBtn = document.getElementById('undo-scan-btn');
         const shopSelect = document.getElementById('shop-select');
         const syncBtn = document.getElementById('sync-btn');
+        const clearBtn = document.getElementById('clear-btn');
+        const clearText = document.getElementById('clear-text');
+        const clearIcon = document.getElementById('clear-icon');
+        const clearModal = document.getElementById('clear-modal');
+        const clearSheetModal = document.getElementById('clear-sheet-modal');
+        const clearConfirmModal = document.getElementById('clear-confirm-modal');
+        const clearSheetStore = document.getElementById('clear-sheet-store');
+        const clearStoreSheetLabel = document.getElementById('clear-store-sheet-label');
+        const clearScanSheetLabel = document.getElementById('clear-scan-sheet-label');
+        const clearConfirmMessage = document.getElementById('clear-confirm-message');
+        const confirmClearBtn = document.getElementById('confirm-clear-btn');
+        let selectedClearShop = '';
+        let selectedClearTarget = '';
         const syncText = document.getElementById('sync-text');
         const syncIcon = document.getElementById('sync-icon');
         const syncModal = document.getElementById('sync-modal');
@@ -247,10 +326,30 @@
         const noEntryPlaceholder = document.getElementById('no-entry-placeholder');
 
         // --- Event Listeners ---
-        document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded', async () => {
             loadBtn.addEventListener('click', loadData);
             scanForm.addEventListener('submit', handleScan);
             downloadBtn.addEventListener('click', downloadCSV);
+            window.addEventListener('online', () => {
+                if (scanRetryTimer) {
+                    clearTimeout(scanRetryTimer);
+                    scanRetryTimer = null;
+                }
+                scanRetryCount = 0;
+                processScanQueue();
+            });
+            try {
+                await restoreLocalScanState();
+            } catch (error) {
+                scanQueueRestoreError = error;
+                console.error('Could not restore persistent offline scans:', error);
+            }
+            updateUndoButton();
+            if (scanQueueRestoreError) {
+                console.error('Pending scan restore warning:', scanQueueRestoreError);
+                showTemporaryMessage('Offline scan storage could not be restored. Check browser storage.', 'red');
+            }
+            scheduleScanQueue();
         });
 
         // --- Tab Switching ---
@@ -303,6 +402,112 @@
             syncModal.classList.add('hidden');
         }
 
+        function openClearModal() {
+            clearModal.classList.remove('hidden');
+        }
+
+        function closeClearModal() {
+            clearModal.classList.add('hidden');
+        }
+
+        function closeClearModals() {
+            clearModal.classList.add('hidden');
+            clearSheetModal.classList.add('hidden');
+            clearConfirmModal.classList.add('hidden');
+            selectedClearShop = '';
+            selectedClearTarget = '';
+        }
+
+        function selectClearStore(shopName) {
+            selectedClearShop = shopName;
+            clearSheetStore.textContent = `${shopName}: choose which sheet data to clear.`;
+            clearStoreSheetLabel.textContent = `${shopName}`;
+            clearScanSheetLabel.textContent = `${shopName} Scan`;
+            clearModal.classList.add('hidden');
+            clearSheetModal.classList.remove('hidden');
+        }
+
+        function backToClearStoreModal() {
+            clearSheetModal.classList.add('hidden');
+            clearModal.classList.remove('hidden');
+        }
+
+        function confirmClearSelection(target) {
+            selectedClearTarget = target;
+            const targetName = target === 'all'
+                ? `${selectedClearShop} and ${selectedClearShop} Scan`
+                : target === 'scan' ? `${selectedClearShop} Scan` : selectedClearShop;
+            clearConfirmMessage.textContent = `Are you sure you want to clear ${targetName}? This cannot be undone.`;
+            clearSheetModal.classList.add('hidden');
+            clearConfirmModal.classList.remove('hidden');
+        }
+
+        function cancelClearConfirmation() {
+            clearConfirmModal.classList.add('hidden');
+            clearSheetModal.classList.remove('hidden');
+        }
+
+        async function startClear() {
+            if (!selectedClearShop || !['store', 'scan', 'all'].includes(selectedClearTarget)) {
+                showTemporaryMessage('Please select a store and sheet to clear.', 'red');
+                return;
+            }
+            clearBtn.disabled = true;
+            confirmClearBtn.disabled = true;
+            clearIcon.classList.add('animate-spin');
+            clearText.textContent = 'Clearing...';
+
+            try {
+                const response = await fetch(WEB_APP_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'clearStoreData',
+                        sheetName: selectedClearShop,
+                        target: selectedClearTarget
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok && result.status === 'success') {
+                    let offlineQueueCleared = true;
+                    if (selectedClearTarget === 'scan' || selectedClearTarget === 'all') {
+                        const clearedScanSheet = `${selectedClearShop} Scan`;
+                        scanQueue = scanQueue.filter(scan => scan.sheetName !== clearedScanSheet);
+                        if (lastScan && lastScan.sheetName === clearedScanSheet) lastScan = null;
+                        try {
+                            await persistLocalScanState();
+                        } catch (error) {
+                            offlineQueueCleared = false;
+                            console.error('Could not clear offline scan queue after sheet clear:', error);
+                        }
+                        updateUndoButton();
+                    }
+                    const clearedName = selectedClearTarget === 'all'
+                        ? `${selectedClearShop} and ${selectedClearShop} Scan`
+                        : selectedClearTarget === 'scan' ? `${selectedClearShop} Scan` : selectedClearShop;
+                    closeClearModals();
+                    showTemporaryMessage(
+                        offlineQueueCleared
+                            ? `${clearedName} data cleared successfully.`
+                            : `${clearedName} cleared, but offline queue cleanup failed.`,
+                        offlineQueueCleared ? 'green' : 'red'
+                    );
+                } else {
+                    throw new Error(result.error || 'Unknown clear error');
+                }
+            } catch (error) {
+                console.error('Clear error:', error);
+                showTemporaryMessage('Clear Failed: ' + error.message, 'red');
+            } finally {
+                clearBtn.disabled = false;
+                confirmClearBtn.disabled = false;
+                clearIcon.classList.remove('animate-spin');
+                clearText.textContent = 'Clear';
+            }
+        }
+
         function closeSyncSuccessModal() {
             syncSuccessModal.classList.add('hidden');
         }
@@ -320,8 +525,9 @@
             }, 500);
 
             try {
-                const syncUrl = `${WEB_APP_URL}?action=syncPosData&sheetName=${shopName}`;
+                const syncUrl = `${WEB_APP_URL}?action=syncPosData&sheetName=${encodeURIComponent(shopName)}`;
                 const syncResponse = await fetch(syncUrl);
+                if (!syncResponse.ok) throw new Error(`POS request failed (${syncResponse.status})`);
                 const syncResult = await syncResponse.json();
                 if (syncResult.error) throw new Error("POS Sync Error: " + syncResult.error);
                 
@@ -333,16 +539,18 @@
                 
                 const updateResponse = await fetch(WEB_APP_URL, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         action: 'updateSheetData', 
-                        spreadsheetId: '1La_eywydgT3NqvyeJNeR31lj9u9--M6WJzgfDBmTQaM',
                         sheetName: shopName,
                         apiData: apiData
                     })
                 });
+                if (!updateResponse.ok) throw new Error(`Google Sheets update failed (${updateResponse.status})`);
                 const updateResult = await updateResponse.json();
-                if (updateResult.error) throw new Error("Sheet Update Error: " + updateResult.error);
+                if (updateResult.status !== 'success') {
+                    throw new Error("Sheet Update Error: " + (updateResult.error || 'The server did not confirm the save.'));
+                }
 
                 clearInterval(progressInterval);
                 syncText.textContent = `100%`;
@@ -351,7 +559,8 @@
                     syncText.textContent = 'Sync';
                     syncIcon.classList.remove('animate-spin');
                     syncBtn.disabled = false;
-                    syncSuccessMessage.textContent = `Downloaded ${apiData.length} items from ${shopName}.`;
+                    syncSuccessMessage.textContent =
+                        `${shopName}: ${updateResult.inserted} new items added, ${updateResult.updated} existing items updated.`;
                     syncSuccessModal.classList.remove('hidden');
                 }, 500);
 
@@ -407,8 +616,9 @@
 
             try {
                 // Step 1: Fetch Master Inventory Data
-                const masterUrl = `${WEB_APP_URL}?action=getMasterData&sheetName=${sheetName}`;
+                const masterUrl = `${WEB_APP_URL}?action=getMasterData&sheetName=${encodeURIComponent(sheetName)}`;
                 const masterResponse = await fetch(masterUrl);
+                if (!masterResponse.ok) throw new Error(`Master data request failed (${masterResponse.status})`);
                 const masterData = await masterResponse.json();
                 if (masterData.error) throw new Error(masterData.error);
                 
@@ -416,8 +626,9 @@
 
                 // Step 2: Fetch Existing Scan Data (Both Found and Not Found)
                 const scanSheetName = `${sheetName} Scan`;
-                const scanUrl = `${WEB_APP_URL}?action=getScanData&sheetName=${scanSheetName}`;
+                const scanUrl = `${WEB_APP_URL}?action=getScanData&sheetName=${encodeURIComponent(scanSheetName)}`;
                 const scanResponse = await fetch(scanUrl);
+                if (!scanResponse.ok) throw new Error(`Scan data request failed (${scanResponse.status})`);
                 const scanData = await scanResponse.json(); 
                 if (scanData.error) throw new Error(scanData.error);
                 
@@ -479,8 +690,10 @@
                 const itemCode = barcodeToCodeMap.get(scannedSku);
                 
                 if (itemCode) {
-                    const existingQty = scanCounts.get(itemCode) || 0;
-                    scanCounts.set(itemCode, existingQty + scannedQty);
+                    if (scannedQty > 0) {
+                        const existingQty = scanCounts.get(itemCode) || 0;
+                        scanCounts.set(itemCode, existingQty + scannedQty);
+                    }
                 } else {
                     console.warn(`Scanned SKU ${scannedSku} from sheet (Col A) not found in master data.`);
                 }
@@ -493,9 +706,20 @@
 
                 const notFoundSku = String(row[0]).toUpperCase();
                 const notFoundQty = parseInt(row[1]) || 0;
-                if(notFoundSku) {
+                if (notFoundSku && notFoundQty > 0) {
                     notFoundScanCounts.set(notFoundSku, notFoundQty);
                 }
+            });
+
+            scanQueue.filter(scan =>
+                scan.sheetName === `${shopSelect.value} Scan` && !scan.attempted
+            ).forEach(scan => {
+                changeLocalScanCount(
+                    scan.type === 'undo'
+                        ? { type: scan.scanType, sku: scan.sku }
+                        : scan,
+                    scan.type === 'undo' ? -1 : 1
+                );
             });
             
             // 4. Rebuild the "Recently Scanned" log
@@ -522,101 +746,372 @@
         }
 
         /**
-         * Handles the scan input form submission (Enter key).
+         * Handles the scan input form submission (Enter key) locally immediately.
          */
         async function handleScan(event) {
             event.preventDefault(); 
             const sku = scanInput.value.trim().toUpperCase();
-            if (!sku) return;
+            if (!sku || !shopSelect.value) return;
 
             const itemCode = barcodeToCodeMap.get(sku);
             scanInput.value = '';
             scanInput.focus();
+            const scan = {
+                id: createScanId(),
+                sku,
+                sheetName: `${shopSelect.value} Scan`,
+                state: 'pending'
+            };
 
             if (itemCode) {
-                // --- Item FOUND in Master List ---
                 const item = inventoryMap.get(itemCode);
-                
-                // 1. Optimistic UI Update (Found List)
                 const newCount = (scanCounts.get(itemCode) || 0) + 1;
                 scanCounts.set(itemCode, newCount);
                 updateScanLog(item, newCount);
                 
                 scanStatus.textContent = `Scanned (${newCount}): ${item.itemName}`;
-                scanStatus.classList.remove('text-red-600', 'text-yellow-500');
-                scanStatus.classList.add('text-green-600');
+                scanStatus.className = 'text-lg h-6 text-green-600 font-bold';
                 playBeep(false);
 
-                // 2. Asynchronously save to Google Sheet (Found Logic)
-                try {
-                    const response = await fetch(WEB_APP_URL, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                        body: JSON.stringify({
-                            action: 'saveFoundScan', 
-                            sheetName: `${shopSelect.value} Scan`, 
-                            sku: sku, 
-                            itemName: item.itemName
-                        })
-                    });
-                    
-                    const saveResult = await response.json();
-                    
-                    if (saveResult.status === 'success') {
-                        console.log('Save successful (Found):', saveResult);
-                        // Re-sync count from server
-                        scanCounts.set(itemCode, saveResult.newQty);
-                        updateScanLog(item, saveResult.newQty);
-                    } else {
-                        throw new Error(saveResult.error || 'Unknown save error');
-                    }
-                } catch (error) {
-                    console.error('Save error (Found):', error);
-                    scanStatus.textContent = `Scanned (${newCount})... Save failed!`;
-                    scanStatus.classList.remove('text-green-600');
-                    scanStatus.classList.add('text-yellow-500');
-                }
-
+                scan.type = 'found';
+                scan.itemName = item.itemName;
             } else {
-                // --- Item NOT FOUND in Master List ---
-                
-                // 1. Optimistic UI Update (Not Found List)
                 const newCount = (notFoundScanCounts.get(sku) || 0) + 1;
                 notFoundScanCounts.set(sku, newCount);
 
                 scanStatus.textContent = `Item NOT FOUND. Logged to "No Entry": ${sku}`;
-                scanStatus.classList.remove('text-green-600', 'text-yellow-500');
-                scanStatus.classList.add('text-red-600');
+                scanStatus.className = 'text-lg h-6 text-red-600 font-bold';
                 playBeep(true); 
 
-                // 2. Asynchronously save to Google Sheet (Not Found Logic)
-                try {
-                    const response = await fetch(WEB_APP_URL, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                        body: JSON.stringify({
-                            action: 'saveNotFoundScan', 
-                            sheetName: `${shopSelect.value} Scan`, 
-                            sku: sku 
-                        })
-                    });
-                    
-                    const saveResult = await response.json();
-                    
-                    if (saveResult.status === 'success') {
-                        console.log('Save successful (Not Found):', saveResult);
-                        // Re-sync count from server
-                        notFoundScanCounts.set(saveResult.sku.toUpperCase(), saveResult.newQty);
-                    } else {
-                        throw new Error(saveResult.error || 'Unknown save error');
-                    }
-                } catch (error) {
-                    console.error('Save error (Not Found):', error);
-                    scanStatus.textContent = `Logged "No Entry"... Save failed!`;
-                    scanStatus.classList.remove('text-red-600');
-                    scanStatus.classList.add('text-yellow-500');
+                scan.type = 'notFound';
+            }
+
+            scanQueue.push(scan);
+            lastScan = scan;
+            try {
+                await persistLocalScanState();
+            } catch (error) {
+                console.error('Could not persist new scan before syncing:', error);
+                showTemporaryMessage('This scan is only in memory and could not be saved offline.', 'red');
+                updateUndoButton();
+                if (navigator.onLine !== false) scheduleScanQueue();
+                return;
+            }
+            updateUndoButton();
+            scheduleScanQueue();
+        }
+
+        function createScanId() {
+            if (window.crypto && typeof window.crypto.randomUUID === 'function') {
+                return window.crypto.randomUUID();
+            }
+            return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+        }
+
+        function openLocalScanDatabase() {
+            if (!window.indexedDB) {
+                return Promise.reject(new Error('This browser does not support IndexedDB.'));
+            }
+            if (!localScanDbPromise) {
+                localScanDbPromise = new Promise((resolve, reject) => {
+                    const request = window.indexedDB.open(LOCAL_SCAN_DB_NAME, LOCAL_SCAN_DB_VERSION);
+                    request.onupgradeneeded = () => {
+                        request.result.createObjectStore('state', { keyPath: 'key' });
+                    };
+                    request.onsuccess = () => resolve(request.result);
+                    request.onerror = () => reject(request.error || new Error('Could not open offline scan storage.'));
+                    request.onblocked = () => reject(new Error('Offline scan storage is blocked by another open app tab.'));
+                });
+            }
+            return localScanDbPromise;
+        }
+
+        async function restoreLocalScanState() {
+            const db = await openLocalScanDatabase();
+            const transaction = db.transaction('state', 'readonly');
+            const request = transaction.objectStore('state').get('scan-state');
+            const state = await new Promise((resolve, reject) => {
+                request.onsuccess = () => resolve(request.result || null);
+                request.onerror = () => reject(request.error || new Error('Could not read offline scans.'));
+            });
+
+            if (state) {
+                if (!Array.isArray(state.scanQueue)) throw new Error('Stored offline scan queue is invalid.');
+                if (state.recoveryWarning) {
+                    scanQueueRestoreError = new Error(state.recoveryWarning);
+                }
+                scanQueue = state.scanQueue.filter(scan =>
+                    scan && typeof scan.sku === 'string' && typeof scan.sheetName === 'string' &&
+                    (['found', 'notFound'].includes(scan.type) ||
+                        (scan.type === 'undo' && ['found', 'notFound'].includes(scan.scanType) &&
+                            typeof scan.scanId === 'string' && typeof scan.id === 'string'))
+                ).map(scan => ({ ...scan, id: scan.id || createScanId() }));
+                if (scanQueue.length !== state.scanQueue.length) {
+                    scanQueueRestoreError = new Error('Some stored scans have invalid data and were skipped.');
+                }
+                if (state.lastScan && ['found', 'notFound'].includes(state.lastScan.type) &&
+                    typeof state.lastScan.sku === 'string' && typeof state.lastScan.sheetName === 'string' &&
+                    ['pending', 'saved'].includes(state.lastScan.state)) {
+                    lastScan = state.lastScan;
+                }
+                if (!state.recoveryWarning) {
+                    localStorage.removeItem(SCAN_QUEUE_STORAGE_KEY);
+                    localStorage.removeItem(LAST_SCAN_STORAGE_KEY);
+                }
+                return;
+            }
+
+            const legacyQueue = JSON.parse(localStorage.getItem(SCAN_QUEUE_STORAGE_KEY) || '[]');
+            const legacyLastScan = JSON.parse(localStorage.getItem(LAST_SCAN_STORAGE_KEY) || 'null');
+            if (!Array.isArray(legacyQueue)) {
+                scanQueueRestoreError = new Error('Legacy offline scan queue has an invalid format.');
+                return;
+            }
+            scanQueue = legacyQueue.filter(scan =>
+                scan && typeof scan.sku === 'string' && typeof scan.sheetName === 'string' &&
+                (['found', 'notFound'].includes(scan.type) ||
+                    (scan.type === 'undo' && ['found', 'notFound'].includes(scan.scanType) &&
+                        typeof scan.scanId === 'string' && typeof scan.id === 'string'))
+            ).map(scan => ({ ...scan, id: scan.id || createScanId() }));
+            if (legacyQueue.length !== scanQueue.length) {
+                scanQueueRestoreError = new Error('Some older queued operations cannot be safely restored.');
+            }
+            if (legacyLastScan && ['found', 'notFound'].includes(legacyLastScan.type) &&
+                typeof legacyLastScan.sku === 'string' && typeof legacyLastScan.sheetName === 'string' &&
+                ['pending', 'saved'].includes(legacyLastScan.state)) {
+                lastScan = legacyLastScan;
+            }
+            if (scanQueue.length || lastScan || scanQueueRestoreError) {
+                await persistLocalScanState();
+                if (!scanQueueRestoreError) {
+                    localStorage.removeItem(SCAN_QUEUE_STORAGE_KEY);
+                    localStorage.removeItem(LAST_SCAN_STORAGE_KEY);
                 }
             }
+        }
+
+        function persistLocalScanState() {
+            const snapshot = {
+                key: 'scan-state',
+                scanQueue: scanQueue.map(scan => ({ ...scan })),
+                lastScan: lastScan ? { ...lastScan } : null,
+                recoveryWarning: scanQueueRestoreError ? scanQueueRestoreError.message : null
+            };
+            const write = localScanWriteQueue.then(async () => {
+                const db = await openLocalScanDatabase();
+                const transaction = db.transaction('state', 'readwrite');
+                const completed = new Promise((resolve, reject) => {
+                    transaction.oncomplete = resolve;
+                    transaction.onerror = () => reject(transaction.error || new Error('Could not store offline scans.'));
+                    transaction.onabort = () => reject(transaction.error || new Error('Offline scan storage transaction was aborted.'));
+                });
+                transaction.objectStore('state').put(snapshot);
+                await completed;
+            });
+            localScanWriteQueue = write.catch(() => {});
+            return write;
+        }
+
+        function updateUndoButton() {
+            undoScanBtn.disabled = !lastScan || isProcessingQueue;
+            undoScanBtn.title = isProcessingQueue
+                ? 'Wait for the current save to finish before undoing.'
+                : lastScan ? `Undo ${lastScan.sku}` : 'There is no scan to undo.';
+        }
+
+        function changeLocalScanCount(scan, delta) {
+            if (scan.type === 'found') {
+                const itemCode = barcodeToCodeMap.get(scan.sku.toUpperCase());
+                if (!itemCode) return;
+                const item = inventoryMap.get(itemCode);
+                const newCount = Math.max(0, (scanCounts.get(itemCode) || 0) + delta);
+                if (newCount === 0) {
+                    scanCounts.delete(itemCode);
+                    const row = document.getElementById(`log-${itemCode}`);
+                    if (row) row.remove();
+                    if (scanCounts.size === 0) scanLogBody.appendChild(scanLogPlaceholder);
+                } else {
+                    scanCounts.set(itemCode, newCount);
+                    if (item) updateScanLog(item, newCount);
+                }
+            } else {
+                const sku = scan.sku.toUpperCase();
+                const newCount = Math.max(0, (notFoundScanCounts.get(sku) || 0) + delta);
+                if (newCount === 0) notFoundScanCounts.delete(sku);
+                else notFoundScanCounts.set(sku, newCount);
+                if (!document.getElementById('page-no-entry').classList.contains('hidden')) {
+                    renderNoEntryTable();
+                }
+            }
+        }
+
+        async function undoLastScan() {
+            if (!lastScan) return;
+            if (isProcessingQueue) {
+                showTemporaryMessage('Please wait for the current scan save to finish, then undo.', 'blue');
+                return;
+            }
+
+            const scanToUndo = { ...lastScan };
+            const queuedScanIndex = scanQueue.findIndex(scan => scan.id === scanToUndo.id);
+            if (scanToUndo.state === 'pending' && queuedScanIndex !== -1) {
+                if (scanQueue[queuedScanIndex].attempted) {
+                    showTemporaryMessage('This scan has already been sent to the server. Wait for save confirmation, then undo it.', 'blue');
+                    return;
+                }
+                const [removedScan] = scanQueue.splice(queuedScanIndex, 1);
+                changeLocalScanCount(scanToUndo, -1);
+                if (lastScan.id === scanToUndo.id) lastScan = null;
+                try {
+                    await persistLocalScanState();
+                } catch (error) {
+                    scanQueue.splice(Math.min(queuedScanIndex, scanQueue.length), 0, removedScan);
+                    changeLocalScanCount(scanToUndo, 1);
+                    if (!lastScan) lastScan = scanToUndo;
+                    persistLocalScanState().catch(storageError =>
+                        console.error('Could not restore the pending scan after an undo storage error:', storageError)
+                    );
+                    showTemporaryMessage('Could not save the undo locally; the scan was not cancelled.', 'red');
+                    updateUndoButton();
+                    return;
+                }
+                updateUndoButton();
+                showTemporaryMessage(`Pending scan ${scanToUndo.sku} cancelled.`, 'green');
+                return;
+            }
+
+            if (scanToUndo.state !== 'saved') {
+                showTemporaryMessage('This scan is not confirmed as saved yet. Try again after the save finishes.', 'blue');
+                return;
+            }
+
+            const undoOperation = {
+                id: createScanId(),
+                type: 'undo',
+                scanType: scanToUndo.type,
+                scanId: scanToUndo.id,
+                sku: scanToUndo.sku,
+                sheetName: scanToUndo.sheetName
+            };
+            scanQueue.push(undoOperation);
+            changeLocalScanCount(scanToUndo, -1);
+            if (lastScan.id === scanToUndo.id) lastScan = null;
+            try {
+                await persistLocalScanState();
+            } catch (error) {
+                const undoIndex = scanQueue.findIndex(scan => scan.id === undoOperation.id);
+                if (undoIndex !== -1) scanQueue.splice(undoIndex, 1);
+                changeLocalScanCount(scanToUndo, 1);
+                if (!lastScan) lastScan = scanToUndo;
+                persistLocalScanState().catch(storageError =>
+                    console.error('Could not restore scan state after an undo storage error:', storageError)
+                );
+                showTemporaryMessage('Could not save the undo locally. Please try again.', 'red');
+                updateUndoButton();
+                return;
+            }
+            updateUndoButton();
+            showTemporaryMessage(`Undo for ${scanToUndo.sku} queued; it will sync when connected.`, 'blue');
+            scheduleScanQueue();
+        }
+
+        function scheduleScanQueue() {
+            if (scanFlushTimer || scanRetryTimer || scanQueue.length === 0) return;
+            scanFlushTimer = setTimeout(() => {
+                scanFlushTimer = null;
+                processScanQueue();
+            }, 200);
+        }
+
+        /**
+         * Saves queued scans in batches, retaining them locally until the server confirms the write.
+         */
+        async function processScanQueue() {
+            if (isProcessingQueue || scanRetryTimer || scanQueue.length === 0 || navigator.onLine === false) return;
+            isProcessingQueue = true;
+            updateUndoButton();
+
+            const firstShop = scanQueue[0].sheetName;
+            const batch = [];
+            if (scanQueue[0].type === 'undo') {
+                batch.push(scanQueue[0]);
+            } else {
+                for (const scan of scanQueue) {
+                    if (scan.type === 'undo' || scan.sheetName !== firstShop || batch.length >= 500) break;
+                    batch.push(scan);
+                }
+            }
+
+            try {
+                if (batch[0].type === 'undo') {
+                    batch[0].attempted = true;
+                    await persistLocalScanState();
+                    const response = await fetch(WEB_APP_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            action: 'undoScan',
+                            id: batch[0].id,
+                            scanId: batch[0].scanId,
+                            sheetName: batch[0].sheetName,
+                        })
+                    });
+                    const result = await response.json();
+                    if (!response.ok || result.status !== 'success') {
+                        throw new Error(result.error || `Undo failed (${response.status})`);
+                    }
+                } else {
+                    for (const scan of batch) {
+                        scan.attempted = true;
+                    }
+                    await persistLocalScanState();
+
+                    const response = await fetch(WEB_APP_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            action: 'saveScanBatch',
+                            sheetName: firstShop,
+                            scans: batch.map(scan => ({
+                                id: scan.id,
+                                type: scan.type,
+                                sku: scan.sku,
+                                itemName: scan.itemName || ''
+                            }))
+                        })
+                    });
+                    const saveResult = await response.json();
+                    if (!response.ok || saveResult.status !== 'success' || saveResult.stored !== true) {
+                        throw new Error(saveResult.error || `Save failed (${response.status})`);
+                    }
+                    if (lastScan && batch.some(scan => scan.id === lastScan.id)) {
+                        lastScan.state = 'saved';
+                    }
+                }
+
+                const removed = scanQueue.splice(0, batch.length);
+                try {
+                    await persistLocalScanState();
+                } catch (error) {
+                    scanQueue.unshift(...removed);
+                    throw error;
+                }
+                scanRetryCount = 0;
+            } catch (error) {
+                scanRetryCount += 1;
+                console.error('Scan queue operation failed; operation remains queued:', error);
+                showTemporaryMessage('Scan save/undo failed. It remains queued and will retry automatically.', 'red');
+                const retryDelay = Math.min(30000, 1000 * (2 ** Math.min(scanRetryCount - 1, 5)));
+                scanRetryTimer = setTimeout(() => {
+                    scanRetryTimer = null;
+                    processScanQueue();
+                }, retryDelay);
+            } finally {
+                isProcessingQueue = false;
+                updateUndoButton();
+            }
+
+            if (!scanRetryTimer && scanQueue.length > 0) scheduleScanQueue();
         }
         
         /**
